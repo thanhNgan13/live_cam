@@ -4,10 +4,11 @@ import os
 from flask import Flask, Response, render_template_string, jsonify
 import threading
 import time
+import socket
 
 # Tắt log cảnh báo của OpenCV
-os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
-os.environ['OPENCV_LOG_LEVEL'] = 'ERROR'
+os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
+os.environ["OPENCV_LOG_LEVEL"] = "ERROR"
 cv2.setLogLevel(0)
 
 app = Flask(__name__)
@@ -17,13 +18,14 @@ cameras = {}
 camera_locks = {}
 
 # Load Haar Cascade cho face detection
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")  # type: ignore
+
 
 def find_available_cameras(max_cameras=10):
     """Tìm tất cả camera khả dụng"""
     available_cameras = []
     print("Đang quét camera...")
-    
+
     for i in range(max_cameras):
         cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
         if cap.isOpened():
@@ -32,13 +34,14 @@ def find_available_cameras(max_cameras=10):
                 available_cameras.append(i)
                 print(f"[OK] Tìm thấy camera {i}")
             cap.release()
-    
+
     return available_cameras
+
 
 def init_cameras():
     """Khởi tạo tất cả camera"""
     available = find_available_cameras()
-    
+
     for cam_id in available:
         cap = cv2.VideoCapture(cam_id, cv2.CAP_DSHOW)
         if cap.isOpened():
@@ -48,69 +51,78 @@ def init_cameras():
             cameras[cam_id] = cap
             camera_locks[cam_id] = threading.Lock()
             print(f"[OK] Camera {cam_id} đã sẵn sàng")
-    
+
     return list(cameras.keys())
+
 
 def get_frame(camera_id, detect_face=False):
     """Đọc frame từ camera"""
     if camera_id not in cameras:
         return None
-    
+
     with camera_locks[camera_id]:
         cap = cameras[camera_id]
         ret, frame = cap.read()
-        
+
         if not ret or frame is None:
             return None
-        
+
         # Face detection nếu được yêu cầu
         if detect_face:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            faces = face_cascade.detectMultiScale(
-                gray,
-                scaleFactor=1.1,
-                minNeighbors=5,
-                minSize=(30, 30)
-            )
-            
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
             # Vẽ box cho mỗi khuôn mặt
-            for (x, y, w, h) in faces:
-                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                cv2.putText(frame, 'Face', (x, y-10),
-                           cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-            
+            for x, y, w, h in faces:
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.putText(frame, "Face", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
             # Hiển thị số khuôn mặt
-            cv2.putText(frame, f'Faces: {len(faces)}', (10, 30),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-        
+            cv2.putText(frame, f"Faces: {len(faces)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
         # Thêm info camera
-        cv2.putText(frame, f'Camera {camera_id}', (10, frame.shape[0] - 10),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-        
+        cv2.putText(
+            frame, f"Camera {camera_id}", (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2
+        )
+
         return frame
+
 
 def generate_frames(camera_id, detect_face=False):
     """Generator cho video streaming"""
     while True:
         frame = get_frame(camera_id, detect_face)
-        
+
         if frame is None:
             time.sleep(0.1)
             continue
-        
+
         # Encode frame thành JPEG
-        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        ret, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not ret:
             continue
-        
+
         frame_bytes = buffer.tobytes()
-        
+
         # Yield frame theo format multipart
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
+
+
+def is_port_available(host: str, port: int) -> bool:
+    """Kiểm tra xem port có thể bind được hay không (True nếu rảnh)."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Không cho phép reuse để kiểm tra chính xác
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+        sock.bind((host, int(port)))
+        sock.close()
+        return True
+    except OSError:
+        return False
+
 
 # HTML template cho trang xem camera
-CAMERA_PAGE_TEMPLATE = '''
+CAMERA_PAGE_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -232,10 +244,10 @@ CAMERA_PAGE_TEMPLATE = '''
     </script>
 </body>
 </html>
-'''
+"""
 
 # HTML template cho trang chủ
-HOME_PAGE_TEMPLATE = '''
+HOME_PAGE_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -348,53 +360,48 @@ HOME_PAGE_TEMPLATE = '''
     </div>
 </body>
 </html>
-'''
+"""
+
 
 # Routes
-@app.route('/')
+@app.route("/")
 def index():
     """Trang chủ"""
     return render_template_string(
         HOME_PAGE_TEMPLATE,
         cameras=list(cameras.keys()),
         camera_count=len(cameras),
-        camera_list=str(list(cameras.keys()))
+        camera_list=str(list(cameras.keys())),
     )
 
-@app.route('/cameras')
+
+@app.route("/cameras")
 def list_cameras():
     """API trả về danh sách camera"""
-    return jsonify({
-        'cameras': list(cameras.keys()),
-        'count': len(cameras)
-    })
+    return jsonify({"cameras": list(cameras.keys()), "count": len(cameras)})
 
-@app.route('/camera-<int:camera_id>')
+
+@app.route("/camera-<int:camera_id>")
 def camera_page(camera_id):
     """Trang xem camera cụ thể"""
     if camera_id not in cameras:
         return f"Camera {camera_id} không tồn tại!", 404
-    
-    detect_face = request.args.get('detect', 'false').lower() == 'true'
-    
-    return render_template_string(
-        CAMERA_PAGE_TEMPLATE,
-        camera_id=camera_id,
-        detect_face=detect_face
-    )
 
-@app.route('/video_feed/<int:camera_id>')
+    detect_face = request.args.get("detect", "false").lower() == "true"
+
+    return render_template_string(CAMERA_PAGE_TEMPLATE, camera_id=camera_id, detect_face=detect_face)
+
+
+@app.route("/video_feed/<int:camera_id>")
 def video_feed(camera_id):
     """Stream video từ camera"""
     if camera_id not in cameras:
         return f"Camera {camera_id} không tồn tại!", 404
-    
-    detect_face = request.args.get('detect', 'false').lower() == 'true'
-    
-    return Response(
-        generate_frames(camera_id, detect_face),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
-    )
+
+    detect_face = request.args.get("detect", "false").lower() == "true"
+
+    return Response(generate_frames(camera_id, detect_face), mimetype="multipart/x-mixed-replace; boundary=frame")
+
 
 def cleanup():
     """Giải phóng tài nguyên khi tắt server"""
@@ -403,47 +410,55 @@ def cleanup():
         cap.release()
     print("[OK] Đã đóng tất cả camera")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("=" * 60)
     print("CAMERA STREAMING SERVER")
     print("=" * 60)
     print()
-    
+
+    # Lấy host/port từ biến môi trường (nếu có) để dễ cấu hình
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "5000"))
+
+    # Kiểm tra port có thể bind được trước khi mở camera
+    if not is_port_available(host, port):
+        print(f"[ERROR] Port {port} trên host {host} không thể sử dụng (bị chiếm hoặc bị chặn).")
+        print("Hãy kiểm tra process đang dùng port này (PowerShell):")
+        print(f"  netstat -aon | findstr :{port}")
+        print(f"hoặc:\n  Get-Process -Id (Get-NetTCPConnection -LocalPort {port}).OwningProcess")
+        exit(1)
+
     # Khởi tạo camera
     available_cameras = init_cameras()
-    
+
     if not available_cameras:
         print("[ERROR] Không tìm thấy camera nào!")
         exit(1)
-    
+
     print()
     print(f"[OK] Server sẵn sàng với {len(available_cameras)} camera")
     print(f"Danh sách camera: {available_cameras}")
     print()
     print("Truy cập:")
-    print("   - Trang chủ: http://localhost:5000/")
-    print("   - API cameras: http://localhost:5000/cameras")
-    
+    print(f"   - Trang chủ: http://localhost:{port}/")
+    print(f"   - API cameras: http://localhost:{port}/cameras")
+
     for cam_id in available_cameras:
-        print(f"   - Camera {cam_id}: http://localhost:5000/camera-{cam_id}")
-        print(f"   - Camera {cam_id} + Face Detection: http://localhost:5000/camera-{cam_id}?detect=true")
-        print(f"   - Stream {cam_id}: http://localhost:5000/video_feed/{cam_id}")
-    
+        print(f"   - Camera {cam_id}: http://localhost:{port}/camera-{cam_id}")
+        print(f"   - Camera {cam_id} + Face Detection: http://localhost:{port}/camera-{cam_id}?detect=true")
+        print(f"   - Stream {cam_id}: http://localhost:{port}/video_feed/{cam_id}")
+
     print()
     print("[WARNING] Nhấn Ctrl+C để dừng server")
     print("=" * 60)
     print()
-    
+
     try:
         # Import request ở đây để tránh lỗi
         from flask import request
-        
-        app.run(
-            host='0.0.0.0',
-            port=5000,
-            debug=False,
-            threaded=True
-        )
+
+        app.run(host=host, port=port, debug=False, threaded=True)
     except KeyboardInterrupt:
         print("\n[STOP] Đang dừng server...")
     finally:
