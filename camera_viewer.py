@@ -29,7 +29,7 @@ def find_available_cameras(max_cameras=10):
             ret, frame = cap.read()
             if ret:
                 available_cameras.append(i)
-                print(f"✓ Tìm thấy camera {i}")
+                print(f"[OK] Tìm thấy camera {i}")
             cap.release()
     
     # Bật lại log
@@ -63,24 +63,24 @@ def display_cameras(camera_indices):
                 # Đặt độ phân giải (tùy chọn)
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                print(f"✓ Camera {idx} sẵn sàng")
+                print(f"[OK] Camera {idx} sẵn sàng")
             else:
                 failed_cameras.append(idx)
                 cap.release()
-                print(f"✗ Camera {idx} không thể đọc frame")
+                print(f"[ERROR] Camera {idx} không thể đọc frame")
         else:
             failed_cameras.append(idx)
-            print(f"✗ Camera {idx} không mở được")
-    
-    if not cameras:
-        print("\n❌ Không có camera nào hoạt động được!")
+            print(f"[ERROR] Camera {idx} không mở được")
+        
+        if not cameras:
+            print("\n[ERROR] Không có camera nào hoạt động được!")
+            if failed_cameras:
+                print(f"Camera lỗi: {failed_cameras}")
+            return
+        
+        print(f"\n[OK] Đang hiển thị {len(cameras)} camera hoạt động")
         if failed_cameras:
-            print(f"Camera lỗi: {failed_cameras}")
-        return
-    
-    print(f"\n📹 Đang hiển thị {len(cameras)} camera hoạt động")
-    if failed_cameras:
-        print(f"⚠️  Camera không hoạt động: {failed_cameras}")
+            print(f"[WARNING] Camera không hoạt động: {failed_cameras}")
     print("Nhấn 'q' hoặc 'ESC' để thoát\n")
     
     # Đếm lỗi liên tiếp cho mỗi camera
@@ -113,7 +113,7 @@ def display_cameras(camera_indices):
                 # Tăng error count
                 error_counts[idx] += 1
                 if error_counts[idx] >= max_errors:
-                    print(f"⚠️  Camera {idx} bị lỗi quá nhiều, đang loại bỏ...")
+                    print(f"[WARNING] Camera {idx} bị lỗi quá nhiều, đang loại bỏ...")
                     cameras_to_remove.append((idx, cap))
         
         # Loại bỏ camera lỗi
@@ -122,7 +122,7 @@ def display_cameras(camera_indices):
             cap.release()
             cv2.destroyWindow(f'Camera {idx}')
             cameras.remove(cam_tuple)
-            print(f"✗ Đã đóng camera {idx}")
+            print(f"[STOP] Đã đóng camera {idx}")
         
         # Kiểm tra phím nhấn
         key = cv2.waitKey(1) & 0xFF
@@ -140,7 +140,7 @@ def main():
     Hàm chính của chương trình
     """
     print("=" * 50)
-    print("CHƯƠNG TRÌNH KIỂM TRA VÀ HIỂN THỊ CAMERA")
+    print("CHUONG TRINH KIEM TRA VA HIEN THI CAMERA")
     print("=" * 50)
     print()
     
@@ -148,20 +148,20 @@ def main():
     available_cameras = find_available_cameras(max_cameras=10)
     
     if available_cameras:
-        print(f"\n✅ Tổng số camera tìm thấy: {len(available_cameras)}")
+        print(f"\n[OK] Tổng số camera tìm thấy: {len(available_cameras)}")
         print(f"Danh sách camera: {available_cameras}")
         print()
         
         # Hiển thị các camera
         display_cameras(available_cameras)
     else:
-        print("\n❌ Không tìm thấy camera nào trên hệ thống!")
+        print("\n[ERROR] Không tìm thấy camera nào trên hệ thống!")
         print("Vui lòng kiểm tra:")
         print("  - Camera đã được kết nối chưa")
         print("  - Driver camera đã được cài đặt chưa")
         print("  - Camera có đang được sử dụng bởi ứng dụng khác không")
     
-    print("\n✓ Chương trình đã kết thúc.")
+    print("\n[OK] Chương trình đã kết thúc.")
 
 if __name__ == "__main__":
     main()

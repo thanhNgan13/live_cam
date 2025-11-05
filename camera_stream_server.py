@@ -30,7 +30,7 @@ def find_available_cameras(max_cameras=10):
             ret, frame = cap.read()
             if ret and frame is not None:
                 available_cameras.append(i)
-                print(f"✓ Tìm thấy camera {i}")
+                print(f"[OK] Tìm thấy camera {i}")
             cap.release()
     
     return available_cameras
@@ -47,7 +47,7 @@ def init_cameras():
             cap.set(cv2.CAP_PROP_FPS, 30)
             cameras[cam_id] = cap
             camera_locks[cam_id] = threading.Lock()
-            print(f"✓ Camera {cam_id} đã sẵn sàng")
+            print(f"[OK] Camera {cam_id} đã sẵn sàng")
     
     return list(cameras.keys())
 
@@ -401,11 +401,11 @@ def cleanup():
     print("\nĐang đóng tất cả camera...")
     for cam_id, cap in cameras.items():
         cap.release()
-    print("✓ Đã đóng tất cả camera")
+    print("[OK] Đã đóng tất cả camera")
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("🎥 CAMERA STREAMING SERVER")
+    print("CAMERA STREAMING SERVER")
     print("=" * 60)
     print()
     
@@ -413,14 +413,14 @@ if __name__ == '__main__':
     available_cameras = init_cameras()
     
     if not available_cameras:
-        print("❌ Không tìm thấy camera nào!")
+        print("[ERROR] Không tìm thấy camera nào!")
         exit(1)
     
     print()
-    print(f"✅ Server sẵn sàng với {len(available_cameras)} camera")
-    print(f"📋 Danh sách camera: {available_cameras}")
+    print(f"[OK] Server sẵn sàng với {len(available_cameras)} camera")
+    print(f"Danh sách camera: {available_cameras}")
     print()
-    print("🌐 Truy cập:")
+    print("Truy cập:")
     print("   - Trang chủ: http://localhost:5000/")
     print("   - API cameras: http://localhost:5000/cameras")
     
@@ -430,7 +430,7 @@ if __name__ == '__main__':
         print(f"   - Stream {cam_id}: http://localhost:5000/video_feed/{cam_id}")
     
     print()
-    print("⚠️  Nhấn Ctrl+C để dừng server")
+    print("[WARNING] Nhấn Ctrl+C để dừng server")
     print("=" * 60)
     print()
     
@@ -445,6 +445,6 @@ if __name__ == '__main__':
             threaded=True
         )
     except KeyboardInterrupt:
-        print("\n\n🛑 Đang dừng server...")
+        print("\n[STOP] Đang dừng server...")
     finally:
         cleanup()

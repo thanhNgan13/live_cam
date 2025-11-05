@@ -1,167 +1,300 @@
-# Camera Streaming Server 🎥
+# 🎥 Camera Streaming & Face Detection System
 
-Hệ thống streaming camera qua web với face detection tích hợp.
+Hệ thống streaming camera qua web với face detection tích hợp, hỗ trợ tự động bypass ngrok warning page.
 
-## 📦 Cài đặt
+## 📋 Mục lục
 
-```powershell
-# Cài đặt các package cần thiết
-D:/DUT_ITF/Semester_9th/IoT/live_cam/.venv/Scripts/python.exe -m pip install -r requirements.txt
-```
+- [Tính năng](#-tính-năng)
+- [Cài đặt](#-cài-đặt)
+- [Sử dụng](#-sử-dụng)
+- [Cấu trúc Project](#-cấu-trúc-project)
+- [Troubleshooting](#-troubleshooting)
 
-## 🚀 Chạy Server
+## ✨ Tính năng
 
-```powershell
-# Khởi động server
-D:/DUT_ITF/Semester_9th/IoT/live_cam/.venv/Scripts/python.exe camera_stream_server.py
-```
+### 🖥️ Camera Streaming Server
+- ✅ Stream nhiều camera cùng lúc qua HTTP
+- ✅ Web interface đẹp, responsive
+- ✅ API endpoints để tích hợp
+- ✅ Face detection tích hợp sẵn trên server
+- ✅ Hỗ trợ nhiều người xem đồng thời
 
-Server sẽ chạy tại: `http://localhost:5000`
+### 🎯 Face Detection Client  
+- ✅ Nhận video stream từ bất kỳ URL nào
+- ✅ **Tự động bypass ngrok warning page**
+- ✅ Face detection realtime với OpenCV
+- ✅ Hiển thị thống kê (FPS, số khuôn mặt)
+- ✅ Chụp ảnh màn hình
+- ✅ Session management thông minh
 
-## 🌐 Các đường dẫn (Routes)
+### 🌐 Public Streaming
+- ✅ Hỗ trợ ngrok, dev tunnels, cloudflare
+- ✅ Hoặc sử dụng trong mạng LAN
 
-### Trang web:
+## 🚀 Cài đặt
 
-- **Trang chủ**: `http://localhost:5000/`
-  - Hiển thị tất cả camera với preview
-- **Xem camera**: `http://localhost:5000/camera-{n}`
-  - Ví dụ: `http://localhost:5000/camera-1`
-  - Xem camera số 1
-- **Xem camera + Face Detection**: `http://localhost:5000/camera-{n}?detect=true`
-  - Ví dụ: `http://localhost:5000/camera-1?detect=true`
-  - Xem camera số 1 với face detection
-
-### API Endpoints:
-
-- **Danh sách camera**: `http://localhost:5000/cameras`
-  - Trả về JSON danh sách camera
-- **Video stream**: `http://localhost:5000/video_feed/{n}`
-  - Ví dụ: `http://localhost:5000/video_feed/1`
-  - Stream video từ camera số 1
-- **Video stream + Face Detection**: `http://localhost:5000/video_feed/{n}?detect=true`
-  - Ví dụ: `http://localhost:5000/video_feed/1?detect=true`
-  - Stream video với face detection
-
-## 🧪 Test Client
-
-Để test và xem stream từ một chương trình Python khác:
+### 1. Clone project
 
 ```powershell
-# Xem stream camera 1
-D:/DUT_ITF/Semester_9th/IoT/live_cam/.venv/Scripts/python.exe camera_client.py http://localhost:5000/video_feed/1
-
-# Xem stream camera 1 với face detection
-D:/DUT_ITF/Semester_9th/IoT/live_cam/.venv/Scripts/python.exe camera_client.py http://localhost:5000/video_feed/1?detect=true
+cd D:\DUT_ITF\Semester_9th\IoT\live_cam
 ```
 
-## 📝 Tính năng
+### 2. Cài đặt dependencies
 
-✅ **Multi-camera support**: Hỗ trợ nhiều camera cùng lúc
-✅ **Live streaming**: Stream video realtime qua HTTP
-✅ **Face detection**: Phát hiện và khoanh vùng khuôn mặt
-✅ **Multi-viewer**: Nhiều người xem cùng lúc
-✅ **Responsive UI**: Giao diện web đẹp, responsive
-✅ **Thread-safe**: Xử lý an toàn với nhiều request đồng thời
+```powershell
+# Kích hoạt virtual environment
+.venv\Scripts\Activate.ps1
 
-## 🎯 Cách sử dụng trong ứng dụng khác
-
-### 1. Trong HTML:
-
-```html
-<!-- Xem camera 1 -->
-<img src="http://localhost:5000/video_feed/1" alt="Camera 1" />
-
-<!-- Xem camera 1 với face detection -->
-<img
-  src="http://localhost:5000/video_feed/1?detect=true"
-  alt="Camera 1 with Face Detection"
-/>
+# Cài đặt packages
+pip install -r requirements.txt
 ```
 
-### 2. Trong Python:
+### 3. Dependencies chính
 
-```python
-import cv2
-import requests
-import numpy as np
+- `opencv-python` - Xử lý video và face detection
+- `flask` - Web server
+- `requests` - HTTP client
+- `beautifulsoup4` - Parse HTML (bypass ngrok warning)
+- `numpy` - Xử lý mảng
 
-# Lấy stream
-stream = requests.get('http://localhost:5000/video_feed/1?detect=true', stream=True)
+## 📖 Sử dụng
 
-bytes_data = bytes()
-for chunk in stream.iter_content(chunk_size=1024):
-    bytes_data += chunk
-    a = bytes_data.find(b'\xff\xd8')
-    b = bytes_data.find(b'\xff\xd9')
+### 🎬 Scenario 1: Sử dụng Local (trong cùng máy)
 
-    if a != -1 and b != -1:
-        jpg = bytes_data[a:b+2]
-        bytes_data = bytes_data[b+2:]
-        frame = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
-        cv2.imshow('Camera', frame)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+**Terminal 1: Khởi động server**
+```powershell
+.venv\Scripts\python.exe camera_stream_server.py
 ```
 
-### 3. Trong JavaScript:
+**Terminal 2: Xem với face detection**
+```powershell
+# Cách 1: Dùng client v2 (khuyên dùng - có auto bypass)
+.venv\Scripts\python.exe face_detection_client_v2.py http://localhost:5000/video_feed/0
 
-```javascript
-// Xem stream trong <img> tag
-document.getElementById("camera").src =
-  "http://localhost:5000/video_feed/1?detect=true";
+# Cách 2: Xem trực tiếp trên desktop
+.venv\Scripts\python.exe camera_viewer.py
 ```
 
-## 🛠️ Cấu trúc files
+**Hoặc mở browser:**
+- Trang chủ: http://localhost:5000/
+- Camera 0: http://localhost:5000/camera-0
+- Camera với face detection: http://localhost:5000/camera-0?detect=true
+
+---
+
+### 🌐 Scenario 2: Public qua Internet (ngrok)
+
+**Terminal 1: Khởi động server**
+```powershell
+.venv\Scripts\python.exe camera_stream_server.py
+```
+
+**Terminal 2: Khởi động ngrok**
+```powershell
+ngrok http 5000
+```
+
+Copy URL ngrok (ví dụ: `https://xxxx.ngrok-free.app`)
+
+**Terminal 3: Xem từ bất kỳ đâu**
+```powershell
+# Tự động bypass ngrok warning page!
+.venv\Scripts\python.exe face_detection_client_v2.py https://xxxx.ngrok-free.app/video_feed/0
+```
+
+---
+
+### 🏠 Scenario 3: Trong mạng LAN
+
+**Bước 1: Lấy IP máy server**
+```powershell
+ipconfig
+# Tìm IPv4 Address, ví dụ: 192.168.1.100
+```
+
+**Bước 2: Khởi động server**
+```powershell
+.venv\Scripts\python.exe camera_stream_server.py
+```
+
+**Bước 3: Từ máy khác trong mạng**
+```powershell
+# Hoặc mở browser
+http://192.168.1.100:5000/
+
+# Hoặc dùng face detection client
+python face_detection_client_v2.py http://192.168.1.100:5000/video_feed/0
+```
+
+## 📁 Cấu trúc Project
 
 ```
 live_cam/
-├── camera_viewer.py          # Xem camera trực tiếp (desktop app)
-├── camera_stream_server.py   # Web server streaming
-├── camera_client.py          # Client test để xem stream
-├── requirements.txt          # Dependencies
-└── README.md                # Tài liệu này
+├── 📄 camera_stream_server.py      # Web server streaming camera
+├── 📄 face_detection_client_v2.py  # Client với auto bypass ngrok (KHUYÊN DÙNG)
+├── 📄 camera_viewer.py             # Xem camera trực tiếp trên desktop
+├── 📄 debug_stream.py              # Tool debug stream format
+├── 📄 requirements.txt             # Dependencies
+└── 📖 README.md                    # Tài liệu này
 ```
 
-## ⚙️ Tùy chỉnh
+### Chi tiết các file
 
-### Thay đổi port:
+| File | Mục đích | Khi nào dùng |
+|------|----------|--------------|
+| `camera_stream_server.py` | Web server stream camera | Luôn cần chạy để có stream |
+| `face_detection_client_v2.py` | Client xem stream + face detection | **Khuyên dùng** - Tự động bypass ngrok |
+| `camera_viewer.py` | Xem camera desktop (không qua web) | Xem nhanh camera local |
+| `debug_stream.py` | Debug format của stream | Khi stream bị lỗi, cần kiểm tra |
 
-Sửa trong `camera_stream_server.py`:
+## ⌨️ Phím tắt
 
+### Face Detection Client:
+- **`q`** hoặc **`ESC`** - Thoát
+- **`s`** - Chụp ảnh màn hình
+
+### Camera Viewer:
+- **`q`** hoặc **`ESC`** - Thoát
+
+## 🔧 API Endpoints
+
+| Endpoint | Mô tả | Ví dụ |
+|----------|-------|-------|
+| `GET /` | Trang chủ | http://localhost:5000/ |
+| `GET /cameras` | API danh sách camera (JSON) | http://localhost:5000/cameras |
+| `GET /camera-{n}` | Trang xem camera n | http://localhost:5000/camera-0 |
+| `GET /camera-{n}?detect=true` | Xem camera n + face detection | http://localhost:5000/camera-0?detect=true |
+| `GET /video_feed/{n}` | Stream video từ camera n | http://localhost:5000/video_feed/0 |
+| `GET /video_feed/{n}?detect=true` | Stream + face detection | http://localhost:5000/video_feed/0?detect=true |
+
+## 🛠️ Troubleshooting
+
+### Lỗi: "Không tìm thấy camera"
+```powershell
+# Chạy để test camera
+.venv\Scripts\python.exe camera_viewer.py
+```
+- Kiểm tra camera đã kết nối chưa
+- Kiểm tra camera có bị app khác dùng không
+- Thử rút và cắm lại camera
+
+### Lỗi: "Import cv2 not found"
+```powershell
+# Cài lại opencv
+pip install opencv-python --force-reinstall
+```
+
+### Lỗi: ngrok trả về HTML
+```powershell
+# Dùng client v2 (tự động bypass)
+.venv\Scripts\python.exe face_detection_client_v2.py <NGROK_URL>
+
+# Hoặc debug
+.venv\Scripts\python.exe debug_stream.py <NGROK_URL>
+```
+
+### Lỗi: Connection refused
+- Kiểm tra server đã chạy chưa
+- Kiểm tra port 5000 có bị chiếm không: `netstat -ano | findstr :5000`
+- Kiểm tra firewall
+
+### FPS thấp
+- Giảm resolution trong `camera_stream_server.py`:
+  ```python
+  cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)  # Giảm từ 640
+  cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240) # Giảm từ 480
+  ```
+
+## 🎓 Tùy chỉnh
+
+### Thay đổi port server
+Trong `camera_stream_server.py`:
 ```python
 app.run(host='0.0.0.0', port=8080)  # Đổi từ 5000 sang 8080
 ```
 
-### Thay đổi độ phân giải:
-
-Sửa trong `init_cameras()`:
-
+### Thay đổi độ nhạy face detection
+Trong `face_detection_client_v2.py`:
 ```python
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)   # Tăng từ 640
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)   # Tăng từ 480
+faces = self.face_cascade.detectMultiScale(
+    gray,
+    scaleFactor=1.1,    # Giảm để detect nhiều hơn (1.05-1.3)
+    minNeighbors=5,     # Giảm để detect nhiều hơn (3-10)
+    minSize=(30, 30),   # Kích thước tối thiểu
+)
 ```
 
-### Thay đổi chất lượng JPEG:
-
-Sửa trong `generate_frames()`:
-
+### Thay đổi màu box face detection
 ```python
-cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])  # Tăng từ 85
+cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+#                                         ^^^^^^^^^^
+#                                         (B, G, R)
+# Màu khác:
+# (255, 0, 0)   -> Xanh dương
+# (0, 0, 255)   -> Đỏ
+# (255, 255, 0) -> Cyan
 ```
 
-## 🔒 Lưu ý bảo mật
+## 📦 Public Streaming Options
 
-⚠️ Server này chỉ nên dùng trong mạng nội bộ (LAN)
-⚠️ Không expose ra Internet mà không có authentication
-⚠️ Để production, nên thêm SSL/TLS và authentication
-
-## 📞 Truy cập từ thiết bị khác
-
-Từ máy khác trong cùng mạng LAN:
-
+### 1. ngrok (Khuyên dùng cho testing)
+```powershell
+ngrok http 5000
 ```
-http://<IP_CỦA_MÁY_SERVER>:5000/
+- ✅ Miễn phí, dễ dùng
+- ✅ Client v2 tự động bypass warning
+- ❌ URL đổi mỗi lần restart (free)
+
+### 2. CloudFlare Tunnel (Cho production)
+```powershell
+cloudflared tunnel --url http://localhost:5000
+```
+- ✅ Ổn định, nhanh
+- ✅ URL cố định
+- ❌ Cần setup account
+
+### 3. LAN (Trong mạng nội bộ)
+```powershell
+# Không cần tool, dùng IP trực tiếp
+http://192.168.1.X:5000
+```
+- ✅ Nhanh nhất
+- ✅ Không cần internet
+- ❌ Chỉ trong mạng
+
+## 🎯 Quick Start
+
+**Cách nhanh nhất để bắt đầu:**
+
+```powershell
+# 1. Khởi động server
+.venv\Scripts\python.exe camera_stream_server.py
+
+# 2. Mở browser
+start http://localhost:5000
+
+# 3. Hoặc dùng face detection client
+.venv\Scripts\python.exe face_detection_client_v2.py http://localhost:5000/video_feed/0
 ```
 
-Ví dụ: `http://192.168.1.100:5000/`
+## 📝 Requirements
+
+- Python 3.11+
+- Windows 10/11 (hoặc Linux/Mac với điều chỉnh nhỏ)
+- Webcam/USB Camera
+- 4GB RAM (khuyên dùng)
+
+## 🤝 Credits
+
+- OpenCV - Computer vision library
+- Flask - Web framework
+- ngrok - Tunneling service
+- BeautifulSoup - HTML parser
+
+## 📄 License
+
+MIT License - Tự do sử dụng cho mục đích học tập và thương mại.
+
+---
+
+**Made with ❤️ for IoT Course - DUT**

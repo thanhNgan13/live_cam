@@ -47,21 +47,21 @@ class SessionManager:
         2. Phân tích HTML để lấy thông tin
         3. Gửi request mới với session đã được thiết lập
         """
-        print(f"🔍 Đang kiểm tra URL: {url}")
+        print(f"[DEBUG] Đang kiểm tra URL: {url}")
         
         try:
             # Bước 1: Truy cập URL lần đầu
             print("   [1/4] Gửi request đầu tiên...")
             response = self.session.get(url, verify=False, timeout=10, allow_redirects=True)
             
-            print(f"   ✓ Status: {response.status_code}")
-            print(f"   ✓ Content-Type: {response.headers.get('Content-Type', 'N/A')}")
+            print(f"   [OK] Status: {response.status_code}")
+            print(f"   [OK] Content-Type: {response.headers.get('Content-Type', 'N/A')}")
             
             # Kiểm tra xem có phải warning page không
             content_type = response.headers.get('Content-Type', '').lower()
             
             if 'text/html' in content_type:
-                print("   ⚠️  Phát hiện HTML response (có thể là warning page)")
+                print("   [WARNING] Phát hiện HTML response (có thể là warning page)")
                 
                 # Bước 2: Phân tích HTML
                 print("   [2/4] Phân tích HTML...")
@@ -74,17 +74,17 @@ class SessionManager:
                 visit_button = soup.find('button', string=re.compile('Visit Site', re.I))
                 if visit_button:
                     is_ngrok_warning = True
-                    print("   ✓ Tìm thấy button 'Visit Site' - Đây là ngrok warning page")
+                    print("   [OK] Tìm thấy button 'Visit Site' - Đây là ngrok warning page")
                 
                 # Check 2: Tìm text về ngrok
                 if 'ngrok-skip-browser-warning' in response.text:
                     is_ngrok_warning = True
-                    print("   ✓ Tìm thấy 'ngrok-skip-browser-warning' - Đây là ngrok warning page")
+                    print("   [OK] Tìm thấy 'ngrok-skip-browser-warning' - Đây là ngrok warning page")
                 
                 # Check 3: Tìm domain pattern
                 if 'ngrok-free.app' in response.text or 'ngrok.com' in response.text:
                     is_ngrok_warning = True
-                    print("   ✓ Tìm thấy ngrok domain - Đây là ngrok warning page")
+                    print("   [OK] Tìm thấy ngrok domain - Đây là ngrok warning page")
                 
                 if is_ngrok_warning:
                     print("   [3/4] Bypass ngrok warning...")
@@ -100,13 +100,13 @@ class SessionManager:
                     response = self.session.get(url, verify=False, timeout=10, stream=True)
                     
                     new_content_type = response.headers.get('Content-Type', '').lower()
-                    print(f"   ✓ Content-Type mới: {new_content_type}")
+                    print(f"   [OK] Content-Type mới: {new_content_type}")
                     
                     if 'multipart' in new_content_type or 'image' in new_content_type:
-                        print("   ✅ Đã bypass thành công! Nhận được video stream")
+                        print("   [OK] Đã bypass thành công! Nhận được video stream")
                         return response
                     elif 'text/html' in new_content_type:
-                        print("   ⚠️  Vẫn nhận HTML, thử phương pháp khác...")
+                        print("   [WARNING] Vẫn nhận HTML, thử phương pháp khác...")
                         
                         # Phương pháp 3: Simulate click "Visit Site"
                         # Thêm cookies và headers như browser thật
@@ -124,24 +124,24 @@ class SessionManager:
                         new_content_type = response.headers.get('Content-Type', '').lower()
                         
                         if 'multipart' in new_content_type or 'image' in new_content_type:
-                            print("   ✅ Bypass thành công sau lần thử thứ 2!")
+                            print("   [OK] Bypass thành công sau lần thử thứ 2!")
                             return response
                         else:
-                            print(f"   ❌ Không thể bypass. Content-Type: {new_content_type}")
+                            print(f"   [ERROR] Không thể bypass. Content-Type: {new_content_type}")
                             return None
                     else:
                         return response
                 else:
-                    print("   ℹ️  Không phải ngrok warning page")
-                    print("   💡 Có thể là lỗi server hoặc trang khác")
+                    print("   [INFO] Không phải ngrok warning page")
+                    print("   [INFO] Có thể là lỗi server hoặc trang khác")
                     return None
             else:
                 # Không phải HTML, có thể là stream rồi
-                print("   ✅ Nhận được non-HTML response - Có thể là video stream")
+                print("   [OK] Nhận được non-HTML response - Có thể là video stream")
                 return response
                 
         except Exception as e:
-            print(f"   ❌ Lỗi: {e}")
+            print(f"   [ERROR] Lỗi: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -151,22 +151,22 @@ class SessionManager:
         response = self.bypass_ngrok_warning(url)
         
         if response is None:
-            print("\n❌ Không thể lấy stream!")
+            print("\n[ERROR] Không thể lấy stream!")
             return None
         
         # Kiểm tra cuối cùng
         content_type = response.headers.get('Content-Type', '').lower()
         
         if 'html' in content_type:
-            print(f"\n❌ Vẫn nhận HTML sau khi bypass!")
+            print(f"\n[ERROR] Vẫn nhận HTML sau khi bypass!")
             print(f"   Content-Type: {content_type}")
-            print("\n💡 Giải pháp:")
+            print("\n[INFO] Giải pháp:")
             print("   1. Mở URL trong browser, click 'Visit Site' một lần")
             print("   2. Hoặc dùng ngrok paid để tắt warning page")
             print("   3. Hoặc dùng localhost trong LAN")
             return None
         
-        print(f"\n✅ Thành công! Content-Type: {content_type}")
+        print(f"\n[OK] Thành công! Content-Type: {content_type}")
         return response
 
 
@@ -203,7 +203,7 @@ class VideoStreamDetector:
         """Thread liên tục đọc frame từ stream"""
         try:
             print(f"\n{'='*70}")
-            print("🚀 BẮT ĐẦU KẾT NỐI VÀ BYPASS WARNING")
+            print("BẮT ĐẦU KẾT NỐI VÀ BYPASS WARNING")
             print("="*70)
             
             # Sử dụng session manager để bypass warning
@@ -214,7 +214,7 @@ class VideoStreamDetector:
                 return
             
             print("\n" + "="*70)
-            print("📹 BẮT ĐẦU ĐỌC VIDEO STREAM")
+            print("BẮT ĐẦU ĐỌC VIDEO STREAM")
             print("="*70 + "\n")
             
             bytes_data = bytes()
@@ -251,17 +251,17 @@ class VideoStreamDetector:
                         
                         if not first_frame_received:
                             first_frame_received = True
-                            print(f"✅ Đã nhận frame đầu tiên! Kích thước: {frame.shape}")
+                            print(f"[OK] Đã nhận frame đầu tiên! Kích thước: {frame.shape}")
                             print(f"   Bắt đầu stream...\n")
                 else:
                     no_jpeg_count += 1
                     if no_jpeg_count >= max_no_jpeg and not first_frame_received:
-                        print(f"❌ Không nhận được JPEG data sau {max_no_jpeg} chunks!")
+                        print(f"[ERROR] Không nhận được JPEG data sau {max_no_jpeg} chunks!")
                         self.stopped = True
                         break
         
         except Exception as e:
-            print(f"❌ Lỗi: {e}")
+            print(f"[ERROR] Lỗi: {e}")
             import traceback
             traceback.print_exc()
             self.stopped = True
@@ -330,12 +330,12 @@ class VideoStreamDetector:
     def run(self):
         """Chạy chương trình chính"""
         print("=" * 70)
-        print("🎯 FACE DETECTION FROM VIDEO STREAM (WITH AUTO BYPASS)")
+        print("FACE DETECTION FROM VIDEO STREAM (WITH AUTO BYPASS)")
         print("=" * 70)
         
         self.start()
         
-        print("\n⏳ Đang đợi frame đầu tiên...")
+        print("\n[INFO] Đang đợi frame đầu tiên...")
         print("   (Session đã được thiết lập, đang đọc stream...)")
         
         wait_count = 0
@@ -349,14 +349,14 @@ class VideoStreamDetector:
                 print(f"   Đang đợi... ({wait_count//10}s)")
         
         if self.stopped or not self.grabbed:
-            print("\n❌ Không thể lấy frame từ stream!")
-            print("\n💡 Có thể do:")
+            print("\n[ERROR] Không thể lấy frame từ stream!")
+            print("\n[INFO] Có thể do:")
             print("   - Warning page không thể bypass tự động")
             print("   - Server không trả về video stream")
             print("   - Kết nối bị gián đoạn")
             return
         
-        print("\n📹 Đang hiển thị video với face detection...")
+        print("\n[INFO] Đang hiển thị video với face detection...")
         print("   - Nhấn 'q' hoặc 'ESC' để thoát")
         print("   - Nhấn 's' để chụp ảnh màn hình\n")
         
@@ -378,29 +378,29 @@ class VideoStreamDetector:
                 key = cv2.waitKey(1) & 0xFF
                 
                 if key == ord('q') or key == 27:
-                    print("\n⏹️  Đang dừng...")
+                    print("\n[STOP] Đang dừng...")
                     break
                 elif key == ord('s'):
                     screenshot_count += 1
                     filename = f"screenshot_{screenshot_count}_{int(time.time())}.jpg"
                     cv2.imwrite(filename, processed_frame)
-                    print(f"📸 Đã lưu: {filename}")
+                    print(f"[OK] Đã lưu: {filename}")
         
         except KeyboardInterrupt:
-            print("\n⚠️  Đã dừng bởi người dùng")
+            print("\n[WARNING] Đã dừng bởi người dùng")
         except Exception as e:
-            print(f"\n❌ Lỗi: {e}")
+            print(f"\n[ERROR] Lỗi: {e}")
         finally:
             self.stop()
             cv2.destroyAllWindows()
             
             print()
-            print("📊 Thống kê:")
+            print("[STATS] Thống kê:")
             print(f"   - Tổng frames: {self.frame_count}")
             print(f"   - FPS trung bình: {self.fps:.2f}")
             print(f"   - Thời gian chạy: {time.time() - self.start_time:.1f}s")
             print()
-            print("✓ Chương trình đã kết thúc")
+            print("[OK] Chương trình đã kết thúc")
 
 
 def main():
@@ -443,15 +443,15 @@ Chương trình này sẽ:
     args = parser.parse_args()
     
     if not args.stream_url.startswith(('http://', 'https://', 'rtsp://')):
-        print("❌ URL không hợp lệ! Phải bắt đầu với http://, https:// hoặc rtsp://")
+        print("[ERROR] URL không hợp lệ! Phải bắt đầu với http://, https:// hoặc rtsp://")
         sys.exit(1)
     
     # Cần cài thêm beautifulsoup4
     try:
         import bs4
     except ImportError:
-        print("❌ Thiếu thư viện beautifulsoup4!")
-        print("📦 Cài đặt: pip install beautifulsoup4")
+        print("[ERROR] Thiếu thư viện beautifulsoup4!")
+        print("[INFO] Cài đặt: pip install beautifulsoup4")
         sys.exit(1)
     
     detector = VideoStreamDetector(args.stream_url, args.window)
