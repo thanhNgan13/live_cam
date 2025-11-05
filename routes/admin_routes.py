@@ -46,3 +46,9 @@ def edit_driver_page(driver_id):
         return "Không tìm thấy tài xế!", 404
 
     return render_template("admin/edit_driver/index.html", driver=driver)
+
+
+@admin_bp.route("/yolo-test")
+def yolo_test():
+    """Trang test YOLO detection"""
+    return render_template("admin/yolo_test.html")

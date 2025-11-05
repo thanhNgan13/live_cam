@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO Detection Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-start {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #218838;
+        }
+
+        .btn-stop {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #c82333;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .video-placeholder {
+            color: #666;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .video-placeholder .icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .status-bar {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .status-bar.idle {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .status-bar.running {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-bar.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-bar.running .status-indicator {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .info-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-box h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .info-box ul {
+            padding-left: 20px;
+            color: #666;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 YOLO Detection Test</h1>
+            <p>Kiểm tra YOLO detection trên video stream</p>
+        </div>
+
+        <div class="main-content">
+            <div class="controls">
+                <div class="form-group">
+                    <label for="driverSelect">Chọn tài xế:</label>
+                    <select id="driverSelect">
+                        <option value="">-- Chọn tài xế --</option>
+                    </select>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-start" onclick="startDetection()">
+                        ▶️ Bắt đầu Detection
+                    </button>
+                    <button class="btn btn-stop" onclick="stopDetection()">
+                        ⏹️ Dừng Detection
+                    </button>
+                </div>
+            </div>
+
+            <div class="video-container" id="videoContainer">
+                <div class="video-placeholder">
+                    <div class="icon">📹</div>
+                    <p>Chọn tài xế và nhấn "Bắt đầu Detection" để xem video</p>
+                </div>
+            </div>
+
+            <div class="status-bar idle" id="statusBar">
+                <div class="status-indicator"></div>
+                <span id="statusText">Chưa khởi động</span>
+            </div>
+
+            <div class="info-box">
+                <h3>📋 Hướng dẫn:</h3>
+                <ul>
+                    <li>Chọn tài xế từ dropdown list</li>
+                    <li>Nhấn "Bắt đầu Detection" để load model YOLO và bắt đầu detect</li>
+                    <li>Video stream sẽ hiển thị với các bounding boxes đã được detect</li>
+                    <li>Nhấn "Dừng Detection" để dừng processing</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isDetecting = false;
+
+        // Load danh sách tài xế khi trang load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadDrivers();
+        });
+
+        async function loadDrivers() {
+            try {
+                const response = await fetch('/api/drivers');
+                const drivers = await response.json();
+
+                const select = document.getElementById('driverSelect');
+                select.innerHTML = '<option value="">-- Chọn tài xế --</option>';
+
+                drivers.forEach(driver => {
+                    const option = document.createElement('option');
+                    option.value = driver.id;
+                    option.textContent = `${driver.name} - ${driver.license_plate}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading drivers:', error);
+                updateStatus('error', '❌ Không thể load danh sách tài xế');
+            }
+        }
+
+        async function startDetection() {
+            const driverId = document.getElementById('driverSelect').value;
+
+            if (!driverId) {
+                alert('Vui lòng chọn tài xế!');
+                return;
+            }
+
+            if (isDetecting) {
+                alert('Detection đang chạy!');
+                return;
+            }
+
+            try {
+                updateStatus('running', '⏳ Đang khởi động YOLO...');
+
+                // Gọi API để bắt đầu detection
+                const response = await fetch(`/api/yolo/start/${driverId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    isDetecting = true;
+
+                    // Hiển thị video stream
+                    const videoContainer = document.getElementById('videoContainer');
+                    videoContainer.innerHTML = `
+                        <img src="/api/yolo/stream?t=${Date.now()}" 
+                             class="video-stream" 
+                             alt="YOLO Detection Stream"
+                             onerror="handleStreamError()">
+                    `;
+
+                    updateStatus('running', '✅ Detection đang chạy');
+                } else {
+                    updateStatus('error', `❌ Lỗi: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error starting detection:', error);
+                updateStatus('error', '❌ Không thể bắt đầu detection');
+            }
+        }
+
+        async function stopDetection() {
+            if (!isDetecting) {
+                alert('Detection chưa chạy!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/yolo/stop', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    isDetecting = false;
+
+                    // Xóa video stream
+                    const videoContainer = document.getElementById('videoContainer');
+                    videoContainer.innerHTML = `
+                        <div class="video-placeholder">
+                            <div class="icon">📹</div>
+                            <p>Chọn tài xế và nhấn "Bắt đầu Detection" để xem video</p>
+                        </div>
+                    `;
+
+                    updateStatus('idle', '⏹️ Đã dừng detection');
+                } else {
+                    updateStatus('error', `❌ Lỗi: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error stopping detection:', error);
+                updateStatus('error', '❌ Không thể dừng detection');
+            }
+        }
+
+        function handleStreamError() {
+            updateStatus('error', '❌ Không thể kết nối đến video stream');
+            isDetecting = false;
+        }
+
+        function updateStatus(type, message) {
+            const statusBar = document.getElementById('statusBar');
+            const statusText = document.getElementById('statusText');
+
+            statusBar.className = `status-bar ${type}`;
+            statusText.textContent = message;
+        }
+    </script>
+</body>
+
+</html>
