@@ -1,0 +1,31 @@
+{
+  "drivers": [
+    {
+      "id": 1,
+      "name": "Phan Văn Tài",
+      "license": "B2-123456",
+      "phone": "0901234567",
+      "stream_url": "http://localhost:5001/video_feed/0",
+      "status": "active",
+      "created_at": "2025-11-01 08:00:00"
+    },
+    {
+      "id": 2,
+      "name": "Trần Thị B",
+      "license": "C-789012",
+      "phone": "0912345678",
+      "stream_url": "http://localhost:5001/video_feed/1",
+      "status": "active",
+      "created_at": "2025-11-02 09:00:00"
+    },
+    {
+      "id": 3,
+      "name": "Lê Văn C",
+      "license": "B2-345678",
+      "phone": "0923456789",
+      "stream_url": "http://localhost:5001/video_feed/0",
+      "status": "inactive",
+      "created_at": "2025-11-03 10:00:00"
+    }
+  ]
+}

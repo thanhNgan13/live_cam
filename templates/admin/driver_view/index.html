@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quan Sát - {{ driver.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/driver_view.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header-compact">
+            <div class="back-button">
+                <a href="/" class="btn-back">← Quay lại</a>
+            </div>
+            <div class="header-info">
+                <div class="driver-header-with-edit">
+                    <h2 class="driver-name">🚗 {{ driver.name }}</h2>
+                    <a href="/edit-driver/{{ driver.id }}" class="btn-overlay btn-secondary">
+                        ✏️
+                    </a>
+                </div>
+                <p class="driver-subtitle">Giám sát video trực tiếp</p>
+
+            </div>
+            <div class="status-section">
+                <span class="status-badge status-{{ driver.status }}">
+                    {{ '● Đang hoạt động' if driver.status == 'active' else '● Không hoạt động' }}
+                </span>
+            </div>
+        </div>
+
+        <div class="info-bar">
+            <div class="info-item">
+                <span class="info-icon">👨‍✈️</span>
+                <span class="info-text">
+                    <strong>Tên tài xế:</strong><br>
+                    {{ driver.name }}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-icon">🎫</span>
+                <span class="info-text">
+                    <strong>Bằng lái:</strong><br>
+                    {{ driver.license }}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-icon">📞</span>
+                <span class="info-text">
+                    <strong>Số điện thoại:</strong><br>
+                    {{ driver.phone }}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-icon">📡</span>
+                <span class="info-text">
+                    <strong>Stream URL:</strong><br>
+                    {{ driver.stream_url }}
+                </span>
+            </div>
+        </div>
+
+        <div class="video-section">
+            <div class="video-container">
+                <img id="videoStream" src="{{ driver.stream_url }}?t={{ timestamp }}" alt="Video Stream"
+                    data-base-url="{{ driver.stream_url }}" onerror="handleStreamError()">
+                <div id="loadingOverlay" class="loading-overlay">
+                    <div class="spinner"></div>
+                </div>
+                <div id="flashOverlay" class="flash-overlay"></div>
+                <div id="errorMessage" class="error-message" style="display: none;">
+                    ⚠️ Không thể kết nối camera
+                </div>
+
+                <!-- Video Controls Inside Container -->
+                <div class="video-controls-overlay">
+                    <button onclick="takeScreenshot()" class="btn-overlay btn-primary">
+                        📸 Chụp ảnh
+                    </button>
+                    <button onclick="refreshStream()" class="btn-overlay btn-secondary">
+                        🔄 Làm mới
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="gallery-section">
+            <div class="gallery-header">
+                <h2>📷 Ảnh đã chụp (<span id="photoCount">0</span>)</h2>
+                <button onclick="clearGallery()" class="btn btn-danger" id="clearBtn" style="display: none;">
+                    🗑️ Xóa tất cả
+                </button>
+            </div>
+            <div id="gallery" class="gallery-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Pass data to module
+        window.DRIVER_ID = {{ driver.id }};
+        window.SNAPSHOT_URL = '{{ driver.stream_url }}'.replace('/video_feed/', '/snapshot/');
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/driver_view_module.js') }}"></script>
+</body>
+
+</html>

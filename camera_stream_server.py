@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 from flask import Flask, Response, render_template_string, jsonify
+from flask_cors import CORS
 import threading
 import time
 import socket
@@ -12,6 +13,15 @@ os.environ["OPENCV_LOG_LEVEL"] = "ERROR"
 cv2.setLogLevel(0)
 
 app = Flask(__name__)
+
+# Enable CORS cho tất cả routes
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Dictionary lưu trữ camera instances
 cameras = {}
@@ -401,6 +411,36 @@ def video_feed(camera_id):
     detect_face = request.args.get("detect", "false").lower() == "true"
 
     return Response(generate_frames(camera_id, detect_face), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+@app.route("/snapshot/<int:camera_id>")
+def snapshot(camera_id):
+    """Lấy một frame tĩnh (snapshot) từ camera"""
+    if camera_id not in cameras:
+        return f"Camera {camera_id} không tồn tại!", 404
+
+    detect_face = request.args.get("detect", "false").lower() == "true"
+
+    frame = get_frame(camera_id, detect_face)
+
+    if frame is None:
+        return "Không thể lấy frame từ camera!", 500
+
+    # Encode frame thành JPEG
+    ret, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    if not ret:
+        return "Lỗi encode frame!", 500
+
+    # Trả về ảnh JPEG
+    response = Response(buffer.tobytes(), mimetype="image/jpeg")
+    # Thêm CORS headers
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    return response
 
 
 def cleanup():
