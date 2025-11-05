@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm Tài Xế Mới</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/add_driver.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>➕ Thêm Tài Xế Mới</h1>
+            <p>Điền thông tin tài xế vào form bên dưới</p>
+        </div>
+
+        <div class="form-container">
+            <form id="driverForm">
+                <div class="form-group">
+                    <label for="name">Họ và tên <span class="required">*</span></label>
+                    <input type="text" id="name" name="name" required placeholder="VD: Nguyễn Văn A">
+                </div>
+
+                <div class="form-group">
+                    <label for="license">Số bằng lái <span class="required">*</span></label>
+                    <input type="text" id="license" name="license" required placeholder="VD: B2-123456">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Số điện thoại <span class="required">*</span></label>
+                    <input type="tel" id="phone" name="phone" required placeholder="VD: 0901234567">
+                </div>
+
+                <div class="form-group">
+                    <label for="stream_url">Stream URL <span class="required">*</span></label>
+                    <input type="url" id="stream_url" name="stream_url" required
+                        placeholder="VD: http://localhost:5001/video_feed/0">
+                    <div class="help-text">URL video stream của camera tài xế</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Trạng thái</label>
+                    <select id="status" name="status">
+                        <option value="active">Đang hoạt động</option>
+                        <option value="inactive">Không hoạt động</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <a href="/" class="btn btn-secondary">← Hủy</a>
+                    <button type="submit" class="btn btn-primary">✓ Thêm tài xế</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/add_driver_module.js') }}"></script>
+</body>
+
+</html>

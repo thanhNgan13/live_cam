@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Quản Lý Tài Xế</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 QUẢN LÝ TÀI XẾ</h1>
+            <p>Hệ thống giám sát và quản lý tài xế</p>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm tài xế..." onkeyup="filterDrivers()">
+            </div>
+            <a href="/add-driver" class="btn btn-primary">➕ Thêm Tài Xế Mới</a>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="totalDrivers">{{ drivers|length }}</h3>
+                <p>Tổng Tài Xế</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="activeDrivers">{{ drivers|selectattr('status', 'equalto', 'active')|list|length }}</h3>
+                <p>Đang Hoạt Động</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="inactiveDrivers">{{ drivers|selectattr('status', 'equalto', 'inactive')|list|length }}</h3>
+                <p>Không Hoạt Động</p>
+            </div>
+        </div>
+
+        <div class="drivers-grid" id="driversGrid">
+            {% if drivers %}
+            {% for driver in drivers %}
+            <div class="driver-card" data-driver-name="{{ driver.name|lower }}"
+                data-driver-license="{{ driver.license|lower }}">
+                <div class="driver-header">
+                    <span class="driver-status status-{{ driver.status }}">
+                        {{ '● Hoạt động' if driver.status == 'active' else '● Không hoạt động' }}
+                    </span>
+                    <div class="driver-avatar">
+                        {{ driver.name[0]|upper }}
+                    </div>
+                    <div class="driver-name">{{ driver.name }}</div>
+                </div>
+                <div class="driver-body">
+                    <div class="driver-info">
+                        <label>Bằng lái:</label>
+                        <div class="value">{{ driver.license }}</div>
+                    </div>
+                    <div class="driver-info">
+                        <label>Số điện thoại:</label>
+                        <div class="value">{{ driver.phone }}</div>
+                    </div>
+                    <div class="driver-info">
+                        <label>Stream URL:</label>
+                        <div class="value" style="font-size: 0.85em; word-break: break-all;">{{ driver.stream_url }}
+                        </div>
+                    </div>
+                    <div class="driver-actions">
+                        <a href="/driver/{{ driver.id }}" class="btn-view">📹 Xem Video</a>
+                    </div>
+                    <div class="driver-actions" style="margin-top: 10px;">
+                        <a href="/edit-driver/{{ driver.id }}" class="btn-small btn-edit">✏️ Sửa</a>
+                        <button onclick="deleteDriver({{ driver.id }}, '{{ driver.name }}')"
+                            class="btn-small btn-delete">🗑️ Xóa</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <div style="font-size: 5em; margin-bottom: 20px;">📋</div>
+                <h2>Chưa có tài xế nào</h2>
+                <p>Nhấn "Thêm Tài Xế Mới" để bắt đầu</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/dashboard_module.js') }}"></script>
+</body>
+
+</html>
