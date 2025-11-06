@@ -295,7 +295,7 @@
                 drivers.forEach(driver => {
                     const option = document.createElement('option');
                     option.value = driver.id;
-                    option.textContent = `${driver.name} - ${driver.license_plate}`;
+                    option.textContent = `${driver.name} - ${driver.license}`;
                     select.appendChild(option);
                 });
             } catch (error) {
