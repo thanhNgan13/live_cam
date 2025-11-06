@@ -191,8 +191,11 @@ class YOLOStreamProcessor:
             # Vẽ background cho text
             cv2.rectangle(annotated_frame, (x1, y1 - label_size[1] - 8), (x1 + label_size[0], y1), color, -1)
 
+            # Chọn màu chữ: đen cho look_away (nền vàng), trắng cho các class khác
+            text_color = (0, 0, 0) if class_name == "look_away" else (255, 255, 255)
+
             # Vẽ text (giảm font size và thickness)
-            cv2.putText(annotated_frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(annotated_frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
 
         return annotated_frame
 

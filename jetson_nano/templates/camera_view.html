@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Camera {{ camera_id }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .video-container {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            display: block;
+        }
+
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        a.button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        button:hover,
+        a.button:hover {
+            background: #45a049;
+        }
+
+        .info {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .status {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📹 Camera {{ camera_id }}</h1>
+
+        <div class="video-container">
+            <img src="/video_feed/{{ camera_id }}" alt="Camera {{ camera_id }}" id="videoFeed">
+
+            <div class="controls">
+                <a href="/" class="button">🏠 Trang chủ</a>
+                <a href="/cameras" class="button">📋 Danh sách camera</a>
+            </div>
+        </div>
+
+        <div class="info">
+            <p><span class="status">● Đang live</span></p>
+            <p>Đường dẫn stream: <code>/video_feed/{{ camera_id }}</code></p>
+        </div>
+    </div>
+</body>
+
+</html>
