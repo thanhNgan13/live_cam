@@ -13,6 +13,7 @@ from ultralytics import YOLO
 import threading
 import time
 from loguru import logger
+import torch
 
 
 class YOLOStreamProcessor:
@@ -36,11 +37,23 @@ class YOLOStreamProcessor:
 
         # Cấu hình detection
         self.conf_threshold = 0.5  # Ngưỡng confidence
-        self.frame_skip = 5  # Bỏ qua nhiều frame để giảm lag (tăng từ 2 lên 5)
+        self.frame_skip = 3  # Bỏ qua nhiều frame để giảm lag (tăng từ 2 lên 5)
         self.frame_count = 0
 
         # Lưu trữ detections cuối cùng để vẽ lại trên mọi frame
         self.last_detections = []  # [(x1, y1, x2, y2, conf, class_name), ...]
+
+        # WebSocket callback để emit frames
+        self.frame_callback = None
+
+        # FPS tracking
+        self.fps_start_time = None
+        self.fps_frame_count = 0
+        self.fps_log_interval = 60  # Log FPS mỗi 60 frames
+        self.current_fps = 0.0  # FPS hiện tại để vẽ lên frame
+
+        # GPU info
+        self.gpu_info = "CPU"  # Mặc định CPU
 
         # Load model
         self.load_model()
@@ -50,7 +63,21 @@ class YOLOStreamProcessor:
         try:
             logger.info(f"Loading YOLO model from {self.model_path}")
             self.model = YOLO(self.model_path)
-            logger.success("YOLO model loaded successfully!")
+
+            # Kiểm tra GPU
+            cuda_available = torch.cuda.is_available()
+            if cuda_available:
+                gpu_name = torch.cuda.get_device_name(0)
+                gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3  # GB
+                self.gpu_info = f"{gpu_name} ({gpu_memory:.1f}GB)"
+                logger.success(f"✓ YOLO model loaded successfully!")
+                logger.success(f"✓ GPU: {self.gpu_info}")
+                logger.success(f"✓ CUDA Version: {torch.version.cuda}")
+            else:
+                self.gpu_info = "CPU (No GPU)"
+                logger.warning("⚠ GPU not available - running on CPU")
+                logger.warning("⚠ Performance will be significantly slower")
+
         except Exception as e:
             logger.error(f"Failed to load YOLO model: {e}")
             raise
@@ -64,6 +91,16 @@ class YOLOStreamProcessor:
         """
         self.stream_url = url
         logger.info(f"Stream URL set to: {url}")
+
+    def set_frame_callback(self, callback):
+        """
+        Set callback function để emit frames qua WebSocket
+
+        Args:
+            callback: Function nhận frame_bytes làm parameter
+        """
+        self.frame_callback = callback
+        logger.info("Frame callback set for WebSocket streaming")
 
     def start_processing(self):
         """Bắt đầu xử lý video stream"""
@@ -101,6 +138,10 @@ class YOLOStreamProcessor:
 
             logger.info("Video stream opened successfully")
 
+            # Khởi tạo FPS tracking
+            self.fps_start_time = time.time()
+            self.fps_frame_count = 0
+
             while self.is_running:
                 ret, frame = self.cap.read()
 
@@ -111,6 +152,24 @@ class YOLOStreamProcessor:
 
                 # Tăng frame counter
                 self.frame_count += 1
+                self.fps_frame_count += 1
+
+                # Tính FPS hiện tại
+                if self.fps_frame_count > 1:  # Tránh chia cho 0
+                    elapsed = time.time() - self.fps_start_time
+                    if elapsed > 0:
+                        self.current_fps = self.fps_frame_count / elapsed
+
+                # Log FPS định kỳ
+                if self.fps_frame_count % self.fps_log_interval == 0:
+                    elapsed = time.time() - self.fps_start_time
+                    fps = self.fps_frame_count / elapsed
+                    logger.info(
+                        f"📊 FPS: {fps:.2f} | Frames: {self.fps_frame_count} | Detection every {self.frame_skip} frames"
+                    )
+                    # Reset counter
+                    self.fps_start_time = time.time()
+                    self.fps_frame_count = 0
 
                 # Chỉ chạy detection trên một số frame
                 if self.frame_count % self.frame_skip == 0:
@@ -120,9 +179,23 @@ class YOLOStreamProcessor:
                 # Luôn vẽ bounding boxes (dùng detection cũ nếu không chạy detection mới)
                 processed_frame = self._draw_boxes(frame, self.last_detections)
 
+                # Vẽ performance stats lên frame
+                processed_frame = self._draw_performance_stats(processed_frame)
+
                 # Lưu frame đã xử lý
                 with self.lock:
                     self.current_frame = processed_frame
+
+                # Emit frame qua WebSocket callback nếu có
+                if self.frame_callback:
+                    try:
+                        # Encode frame thành JPEG
+                        ret, buffer = cv2.imencode(".jpg", processed_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                        if ret:
+                            frame_bytes = buffer.tobytes()
+                            self.frame_callback(frame_bytes)
+                    except Exception as e:
+                        logger.error(f"Error in frame callback: {e}")
 
         except Exception as e:
             logger.error(f"Error in process loop: {e}")
@@ -198,6 +271,46 @@ class YOLOStreamProcessor:
             cv2.putText(annotated_frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
 
         return annotated_frame
+
+    def _draw_performance_stats(self, frame):
+        """
+        Vẽ performance stats lên frame (FPS, GPU info)
+
+        Args:
+            frame: Frame đã vẽ bounding boxes
+
+        Returns:
+            Frame với performance overlay
+        """
+        h, w = frame.shape[:2]
+
+        # Thông tin hiển thị
+        fps_text = f"FPS: {self.current_fps:.1f}"
+        gpu_text = f"Device: {self.gpu_info}"
+        objects_text = f"Objects: {len(self.last_detections)}"
+
+        # Cấu hình hiển thị
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.6
+        thickness = 2
+        padding = 10
+        line_height = 30
+
+        # Vẽ nền semi-transparent cho stats panel
+        overlay = frame.copy()
+        panel_height = line_height * 3 + padding * 2
+        cv2.rectangle(overlay, (10, 10), (400, 10 + panel_height), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
+
+        # Vẽ text
+        y_offset = 10 + padding + 20
+        cv2.putText(frame, fps_text, (20, y_offset), font, font_scale, (0, 255, 0), thickness)
+        y_offset += line_height
+        cv2.putText(frame, gpu_text, (20, y_offset), font, font_scale, (0, 255, 255), thickness)
+        y_offset += line_height
+        cv2.putText(frame, objects_text, (20, y_offset), font, font_scale, (255, 255, 255), thickness)
+
+        return frame
 
     def _detect_and_draw(self, frame):
         """
@@ -324,13 +437,13 @@ def get_processor(stream_url):
         YOLOStreamProcessor instance cho stream đó
     """
     global _processor_instances
-    
+
     if stream_url not in _processor_instances:
         logger.info(f"Creating new YOLO processor for stream: {stream_url}")
         processor = YOLOStreamProcessor()
         processor.set_stream_url(stream_url)
         _processor_instances[stream_url] = processor
-    
+
     return _processor_instances[stream_url]
 
 
@@ -342,7 +455,7 @@ def remove_processor(stream_url):
         stream_url: URL của stream cần xóa processor
     """
     global _processor_instances
-    
+
     if stream_url in _processor_instances:
         logger.info(f"Removing YOLO processor for stream: {stream_url}")
         _processor_instances[stream_url].stop_processing()

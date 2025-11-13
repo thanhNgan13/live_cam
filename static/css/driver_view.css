@@ -194,6 +194,11 @@
     transition: opacity 0.3s ease;
 }
 
+#yoloCanvas {
+    display: block;
+    margin: 0 auto;
+}
+
 #videoStream.loading {
     opacity: 0.5;
 }

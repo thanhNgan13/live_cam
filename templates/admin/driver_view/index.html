@@ -7,6 +7,8 @@
     <title>Quan Sát - {{ driver.name }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/driver_view.css') }}">
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 
 <body>
@@ -65,8 +67,13 @@
 
         <div class="video-section">
             <div class="video-container">
+                <!-- Canvas cho WebSocket streaming -->
+                <canvas id="yoloCanvas" style="display: none; max-width: 100%; height: auto;"></canvas>
+
+                <!-- Img tag cho MJPEG streaming (fallback) -->
                 <img id="videoStream" src="{{ driver.stream_url }}?t={{ timestamp }}" alt="Video Stream"
                     data-base-url="{{ driver.stream_url }}" onerror="handleStreamError()">
+
                 <div id="loadingOverlay" class="loading-overlay">
                     <div class="spinner"></div>
                 </div>
@@ -101,6 +108,8 @@
         </div>
     </div>
 
+    <script src="{{ url_for('static', filename='js/yolo_websocket.js') }}"></script>
+
     <script>
         // Pass data to module
         window.DRIVER_ID = {{ driver.id }};
@@ -110,20 +119,33 @@
         // YOLO Detection state
         let isYOLODetecting = false;
         let originalStreamUrl = '{{ driver.stream_url }}';
+        let yoloStreamer = null;
 
         async function toggleYOLODetection() {
             const btn = document.getElementById('yoloDetectBtn');
+
+            // Xem video thông thường (MJPEG stream) khi không bật YOLO Detection
             const videoStream = document.getElementById('videoStream');
+
+            // Xem video có YOLO detection (WebSocket stream) khi bật YOLO Detection
+            const yoloCanvas = document.getElementById('yoloCanvas');
             const loadingOverlay = document.getElementById('loadingOverlay');
 
             if (!isYOLODetecting) {
-                // Start YOLO Detection
+                // Start YOLO Detection with WebSocket
                 try {
                     btn.disabled = true;
                     btn.textContent = '⏳ Đang khởi động...';
                     loadingOverlay.style.display = 'flex';
 
-                    // Gọi API để bắt đầu detection với stream_url
+                    // Khởi tạo WebSocket streamer
+                    if (!yoloStreamer) {
+                        yoloStreamer = new YOLOWebSocketStreamer(originalStreamUrl);
+                        yoloStreamer.initCanvas(yoloCanvas);
+                        yoloStreamer.connect();
+                    }
+
+                    // Gọi API để bắt đầu detection
                     const response = await fetch('/api/yolo/start', {
                         method: 'POST',
                         headers: {
@@ -139,8 +161,12 @@
                     if (response.ok) {
                         isYOLODetecting = true;
 
-                        // Chuyển sang stream YOLO với stream_url parameter
-                        videoStream.src = `/api/yolo/stream?stream_url=${encodeURIComponent(originalStreamUrl)}&t=${Date.now()}`;
+                        // Ẩn img, hiện canvas
+                        videoStream.style.display = 'none';
+                        yoloCanvas.style.display = 'block';
+
+                        // Bắt đầu stream qua WebSocket
+                        yoloStreamer.startStream();
 
                         btn.textContent = '⏹️ Dừng YOLO';
                         btn.classList.remove('btn-yolo');
@@ -166,6 +192,11 @@
                     btn.textContent = '⏳ Đang dừng...';
                     loadingOverlay.style.display = 'flex';
 
+                    // Dừng WebSocket stream
+                    if (yoloStreamer) {
+                        yoloStreamer.stopStream();
+                    }
+
                     const response = await fetch('/api/yolo/stop', {
                         method: 'POST',
                         headers: {
@@ -180,6 +211,10 @@
 
                     if (response.ok) {
                         isYOLODetecting = false;
+
+                        // Ẩn canvas, hiện img
+                        yoloCanvas.style.display = 'none';
+                        videoStream.style.display = 'block';
 
                         // Chuyển về stream gốc
                         videoStream.src = `${originalStreamUrl}?t=${Date.now()}`;
