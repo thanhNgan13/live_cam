@@ -83,6 +83,9 @@
                     <button onclick="refreshStream()" class="btn-overlay btn-secondary">
                         🔄 Làm mới
                     </button>
+                    <button id="yoloDetectBtn" onclick="toggleYOLODetection()" class="btn-overlay btn-yolo">
+                        🤖 YOLO Detection
+                    </button>
                 </div>
             </div>
         </div>
@@ -102,6 +105,102 @@
         // Pass data to module
         window.DRIVER_ID = {{ driver.id }};
         window.SNAPSHOT_URL = '{{ driver.stream_url }}'.replace('/video_feed/', '/snapshot/');
+        window.STREAM_URL = '{{ driver.stream_url }}';
+
+        // YOLO Detection state
+        let isYOLODetecting = false;
+        let originalStreamUrl = '{{ driver.stream_url }}';
+
+        async function toggleYOLODetection() {
+            const btn = document.getElementById('yoloDetectBtn');
+            const videoStream = document.getElementById('videoStream');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            if (!isYOLODetecting) {
+                // Start YOLO Detection
+                try {
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Đang khởi động...';
+                    loadingOverlay.style.display = 'flex';
+
+                    // Gọi API để bắt đầu detection với stream_url
+                    const response = await fetch('/api/yolo/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            stream_url: originalStreamUrl
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        isYOLODetecting = true;
+
+                        // Chuyển sang stream YOLO với stream_url parameter
+                        videoStream.src = `/api/yolo/stream?stream_url=${encodeURIComponent(originalStreamUrl)}&t=${Date.now()}`;
+
+                        btn.textContent = '⏹️ Dừng YOLO';
+                        btn.classList.remove('btn-yolo');
+                        btn.classList.add('btn-danger');
+                        loadingOverlay.style.display = 'none';
+                    } else {
+                        alert(`Lỗi: ${result.error}`);
+                        btn.textContent = '🤖 YOLO Detection';
+                        loadingOverlay.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error starting YOLO:', error);
+                    alert('Không thể bắt đầu YOLO detection');
+                    btn.textContent = '🤖 YOLO Detection';
+                    loadingOverlay.style.display = 'none';
+                } finally {
+                    btn.disabled = false;
+                }
+            } else {
+                // Stop YOLO Detection
+                try {
+                    btn.disabled = true;
+                    btn.textContent = '⏳ Đang dừng...';
+                    loadingOverlay.style.display = 'flex';
+
+                    const response = await fetch('/api/yolo/stop', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            stream_url: originalStreamUrl
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        isYOLODetecting = false;
+
+                        // Chuyển về stream gốc
+                        videoStream.src = `${originalStreamUrl}?t=${Date.now()}`;
+
+                        btn.textContent = '🤖 YOLO Detection';
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-yolo');
+                        loadingOverlay.style.display = 'none';
+                    } else {
+                        alert(`Lỗi: ${result.error}`);
+                        loadingOverlay.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error stopping YOLO:', error);
+                    alert('Không thể dừng YOLO detection');
+                    loadingOverlay.style.display = 'none';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+        }
     </script>
     <script type="module" src="{{ url_for('static', filename='js/driver_view_module.js') }}"></script>
 </body>

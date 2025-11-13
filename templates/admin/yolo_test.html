@@ -278,6 +278,7 @@
 
     <script>
         let isDetecting = false;
+        let currentStreamUrl = null;  // Lưu stream_url hiện tại
 
         // Load danh sách tài xế khi trang load
         window.addEventListener('DOMContentLoaded', async () => {
@@ -320,20 +321,36 @@
             try {
                 updateStatus('running', '⏳ Đang khởi động YOLO...');
 
-                // Gọi API để bắt đầu detection
-                const response = await fetch(`/api/yolo/start/${driverId}`, {
-                    method: 'POST'
+                // Lấy stream_url từ driver
+                const driverResponse = await fetch(`/api/drivers/${driverId}`);
+                const driver = await driverResponse.json();
+
+                if (!driver.stream_url) {
+                    updateStatus('error', '❌ Tài xế chưa có stream URL');
+                    return;
+                }
+
+                // Gọi API để bắt đầu detection với stream_url
+                const response = await fetch('/api/yolo/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        stream_url: driver.stream_url
+                    })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
                     isDetecting = true;
+                    currentStreamUrl = driver.stream_url;  // Lưu stream_url
 
-                    // Hiển thị video stream
+                    // Hiển thị video stream với stream_url parameter
                     const videoContainer = document.getElementById('videoContainer');
                     videoContainer.innerHTML = `
-                        <img src="/api/yolo/stream?t=${Date.now()}" 
+                        <img src="/api/yolo/stream?stream_url=${encodeURIComponent(driver.stream_url)}&t=${Date.now()}" 
                              class="video-stream" 
                              alt="YOLO Detection Stream"
                              onerror="handleStreamError()">
@@ -357,13 +374,20 @@
 
             try {
                 const response = await fetch('/api/yolo/stop', {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        stream_url: currentStreamUrl
+                    })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
                     isDetecting = false;
+                    currentStreamUrl = null;  // Clear stream_url
 
                     // Xóa video stream
                     const videoContainer = document.getElementById('videoContainer');

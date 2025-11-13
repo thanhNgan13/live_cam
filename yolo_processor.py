@@ -309,18 +309,51 @@ class YOLOStreamProcessor:
             yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n")
 
 
-# Singleton instance
-_processor_instance = None
+# Multi-instance management - Mỗi stream_url có 1 processor riêng
+_processor_instances = {}
 
 
-def get_processor():
+def get_processor(stream_url):
     """
-    Lấy singleton instance của YOLOStreamProcessor
+    Lấy hoặc tạo processor cho stream_url cụ thể
+
+    Args:
+        stream_url: URL của stream cần detect
 
     Returns:
-        YOLOStreamProcessor instance
+        YOLOStreamProcessor instance cho stream đó
     """
-    global _processor_instance
-    if _processor_instance is None:
-        _processor_instance = YOLOStreamProcessor()
-    return _processor_instance
+    global _processor_instances
+    
+    if stream_url not in _processor_instances:
+        logger.info(f"Creating new YOLO processor for stream: {stream_url}")
+        processor = YOLOStreamProcessor()
+        processor.set_stream_url(stream_url)
+        _processor_instances[stream_url] = processor
+    
+    return _processor_instances[stream_url]
+
+
+def remove_processor(stream_url):
+    """
+    Xóa processor cho stream_url cụ thể
+
+    Args:
+        stream_url: URL của stream cần xóa processor
+    """
+    global _processor_instances
+    
+    if stream_url in _processor_instances:
+        logger.info(f"Removing YOLO processor for stream: {stream_url}")
+        _processor_instances[stream_url].stop_processing()
+        del _processor_instances[stream_url]
+
+
+def get_active_streams():
+    """
+    Lấy danh sách các stream đang active
+
+    Returns:
+        List of stream URLs đang được detect
+    """
+    return [url for url, proc in _processor_instances.items() if proc.is_running]
