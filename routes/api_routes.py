@@ -5,7 +5,7 @@ API Routes - RESTful API endpoints
 from flask import Blueprint, request, jsonify, Response
 from datetime import datetime
 from utils.data_manager import load_drivers_data, save_drivers_data
-from yolo_processor import get_processor
+from yolo_processor import get_processor, remove_processor, get_active_streams
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -84,35 +84,39 @@ def delete_driver(driver_id):
 # ==================== YOLO Detection APIs ====================
 
 
-@api_bp.route("/yolo/start/<int:driver_id>", methods=["POST"])
-def start_yolo_detection(driver_id):
+@api_bp.route("/yolo/start", methods=["POST"])
+def start_yolo_detection():
     """
-    API để bắt đầu YOLO detection cho một tài xế
+    API để bắt đầu YOLO detection
 
-    Args:
-        driver_id: ID của tài xế cần detect
+    Request body:
+        {
+            "stream_url": "http://localhost:5000/video_feed/0"
+        }
 
     Returns:
         JSON response với status
     """
     try:
-        # Lấy thông tin tài xế
-        data = load_drivers_data()
-        driver = next((d for d in data["drivers"] if d["id"] == driver_id), None)
+        request_data = request.get_json()
 
-        if not driver:
-            return jsonify({"error": "Không tìm thấy tài xế"}), 404
+        if not request_data:
+            return jsonify({"error": "Dữ liệu không hợp lệ"}), 400
 
-        stream_url = driver.get("stream_url")
+        stream_url = request_data.get("stream_url")
         if not stream_url:
-            return jsonify({"error": "Tài xế chưa có stream URL"}), 400
+            return jsonify({"error": "Thiếu stream_url trong request"}), 400
 
-        # Khởi động YOLO processor
-        processor = get_processor()
-        processor.set_stream_url(stream_url)
+        # Lấy hoặc tạo processor cho stream này
+        processor = get_processor(stream_url)
+        
+        # Nếu đang chạy rồi thì không cần start lại
+        if processor.is_running:
+            return jsonify({"message": "Stream đang được detect", "stream_url": stream_url}), 200
+        
         processor.start_processing()
 
-        return jsonify({"message": "Đã bắt đầu YOLO detection", "driver_id": driver_id, "stream_url": stream_url}), 200
+        return jsonify({"message": "Đã bắt đầu YOLO detection", "stream_url": stream_url}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -123,14 +127,28 @@ def stop_yolo_detection():
     """
     API để dừng YOLO detection
 
+    Request body:
+        {
+            "stream_url": "http://localhost:5000/video_feed/0"
+        }
+
     Returns:
         JSON response với status
     """
     try:
-        processor = get_processor()
-        processor.stop_processing()
+        request_data = request.get_json()
 
-        return jsonify({"message": "Đã dừng YOLO detection"}), 200
+        if not request_data:
+            return jsonify({"error": "Dữ liệu không hợp lệ"}), 400
+
+        stream_url = request_data.get("stream_url")
+        if not stream_url:
+            return jsonify({"error": "Thiếu stream_url trong request"}), 400
+
+        # Xóa processor cho stream này
+        remove_processor(stream_url)
+
+        return jsonify({"message": "Đã dừng YOLO detection", "stream_url": stream_url}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -141,11 +159,41 @@ def yolo_video_stream():
     """
     API để stream video đã được YOLO detect
 
+    Query params:
+        stream_url: URL của stream gốc
+
     Returns:
         Response chứa video stream (MJPEG format)
     """
     try:
-        processor = get_processor()
+        stream_url = request.args.get("stream_url")
+        
+        if not stream_url:
+            return jsonify({"error": "Thiếu stream_url trong query params"}), 400
+        
+        processor = get_processor(stream_url)
+        
+        if not processor.is_running:
+            return jsonify({"error": "Stream chưa được khởi động"}), 400
+        
         return Response(processor.generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/yolo/active-streams", methods=["GET"])
+def get_yolo_active_streams():
+    """
+    API để lấy danh sách các stream đang được YOLO detect
+
+    Returns:
+        JSON response với danh sách stream URLs
+    """
+    try:
+        active_streams = get_active_streams()
+        return jsonify({
+            "active_streams": active_streams,
+            "count": len(active_streams)
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

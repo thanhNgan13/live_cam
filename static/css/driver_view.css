@@ -194,6 +194,11 @@
     transition: opacity 0.3s ease;
 }
 
+#yoloCanvas {
+    display: block;
+    margin: 0 auto;
+}
+
 #videoStream.loading {
     opacity: 0.5;
 }
@@ -314,6 +319,22 @@
 
 .video-controls-overlay .btn-secondary:hover {
     background: rgba(90, 98, 104, 0.95);
+}
+
+.video-controls-overlay .btn-yolo {
+    background: rgba(102, 126, 234, 0.85);
+}
+
+.video-controls-overlay .btn-yolo:hover {
+    background: rgba(82, 106, 214, 0.95);
+}
+
+.video-controls-overlay .btn-danger {
+    background: rgba(220, 53, 69, 0.85);
+}
+
+.video-controls-overlay .btn-danger:hover {
+    background: rgba(200, 35, 51, 0.95);
 }
 
 /* Gallery Section */
