@@ -52,3 +52,15 @@ def edit_driver_page(driver_id):
 def yolo_test():
     """Trang test YOLO detection"""
     return render_template("admin/yolo_test.html")
+
+
+@admin_bp.route("/multi-camera")
+def multi_camera():
+    """Trang giám sát nhiều camera"""
+    return render_template("admin/multi_camera_view.html")
+
+
+@admin_bp.route("/alert-logs")
+def alert_logs():
+    """Trang xem alert logs"""
+    return render_template("admin/alert_logs/index.html")

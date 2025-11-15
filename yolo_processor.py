@@ -13,6 +13,8 @@ from ultralytics import YOLO
 import threading
 import time
 from loguru import logger
+from alert_manager import get_alert_manager
+from alert_logger import get_alert_logger
 
 
 class YOLOStreamProcessor:
@@ -42,6 +44,21 @@ class YOLOStreamProcessor:
         # Lưu trữ detections cuối cùng để vẽ lại trên mọi frame
         self.last_detections = []  # [(x1, y1, x2, y2, conf, class_name), ...]
 
+        # Alert Manager
+        self.alert_manager = get_alert_manager()
+        
+        # Alert Logger
+        self.alert_logger = get_alert_logger()
+        
+        # Driver ID hiện tại (cho logging)
+        self.current_driver_id = None
+        
+        # Thống kê
+        self.stats = {
+            "total_alerts": 0,
+            "fps": 0.0
+        }
+
         # Load model
         self.load_model()
 
@@ -55,15 +72,17 @@ class YOLOStreamProcessor:
             logger.error(f"Failed to load YOLO model: {e}")
             raise
 
-    def set_stream_url(self, url):
+    def set_stream_url(self, url, driver_id=None):
         """
         Set URL của camera stream
 
         Args:
             url: URL của camera stream
+            driver_id: ID tài xế (optional, cho logging)
         """
         self.stream_url = url
-        logger.info(f"Stream URL set to: {url}")
+        self.current_driver_id = driver_id
+        logger.info(f"Stream URL set to: {url}, driver_id: {driver_id}")
 
     def start_processing(self):
         """Bắt đầu xử lý video stream"""
@@ -109,6 +128,12 @@ class YOLOStreamProcessor:
                     time.sleep(0.1)
                     continue
 
+                # Lấy timestamp hiện tại
+                frame_timestamp = time.time()
+
+                # Thêm frame vào buffer của alert_logger với timestamp (cho video recording)
+                self.alert_logger.add_frame_to_buffer(frame, timestamp=frame_timestamp)
+
                 # Tăng frame counter
                 self.frame_count += 1
 
@@ -117,7 +142,7 @@ class YOLOStreamProcessor:
                     # Chạy detection và cập nhật last_detections
                     self._detect_and_update(frame)
 
-                # Luôn vẽ bounding boxes (dùng detection cũ nếu không chạy detection mới)
+                # Vẽ bounding boxes (dùng detection cũ nếu không chạy detection mới)
                 processed_frame = self._draw_boxes(frame, self.last_detections)
 
                 # Lưu frame đã xử lý
@@ -160,6 +185,32 @@ class YOLOStreamProcessor:
 
             # Cập nhật last_detections
             self.last_detections = detections
+            
+            # Xử lý alerts
+            alerts = self.alert_manager.process_detections(detections)
+            if alerts:
+                self.stats["total_alerts"] += len(alerts)
+                
+                # Log mỗi alert và lưu evidence
+                for alert in alerts:
+                    logger.warning(f"ALERT [{alert.class_name}]: {alert.message}")
+                    
+                    # Chuẩn bị alert data để log
+                    alert_data = {
+                        "behavior": alert.class_name,
+                        "message": alert.message,
+                        "timestamp": alert.timestamp,
+                        "priority": alert.priority,
+                        "duration": alert.metadata.get("duration") if alert.metadata else None
+                    }
+                    
+                    # Lưu log và evidence (trong thread riêng để không block)
+                    threading.Thread(
+                        target=self.alert_logger.log_alert,
+                        args=(alert_data,),
+                        kwargs={"driver_id": self.current_driver_id, "save_evidence": True},
+                        daemon=True
+                    ).start()
 
         except Exception as e:
             logger.error(f"Error in detection: {e}")
@@ -198,6 +249,63 @@ class YOLOStreamProcessor:
             cv2.putText(annotated_frame, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 1)
 
         return annotated_frame
+
+    def _draw_alerts_overlay(self, frame):
+        """
+        Vẽ thông tin alerts lên frame
+        
+        Args:
+            frame: Frame đã được vẽ bounding boxes
+            
+        Returns:
+            Frame đã được vẽ alerts
+        """
+        h, w = frame.shape[:2]
+        
+        # Lấy alerts gần nhất
+        recent_alerts = self.alert_manager.get_recent_alerts(3)
+        
+        if not recent_alerts:
+            return frame
+        
+        # Vẽ từ dưới lên
+        y_offset = h - 60
+        
+        for alert in reversed(recent_alerts):
+            # Chọn màu theo priority
+            if alert.priority == 1:  # Nguy hiểm cao
+                bg_color = (0, 0, 200)  # Đỏ đậm
+            elif alert.priority == 2:  # Cảnh báo
+                bg_color = (0, 165, 255)  # Cam
+            else:  # Chú ý
+                bg_color = (0, 200, 200)  # Vàng
+            
+            # Background cho alert - wider
+            cv2.rectangle(frame, (0, y_offset - 5), (w, y_offset + 30), bg_color, -1)
+            
+            # Text alert - font size lớn hơn và spacing tốt hơn
+            alert_text = alert.message
+            cv2.putText(frame, alert_text, (15, y_offset + 18), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            
+            y_offset -= 40  # Spacing giữa các alerts
+            
+            if y_offset < 100:  # Không vẽ quá nhiều
+                break
+        
+        # Vẽ stats ở góc trên phải - đơn giản hơn
+        stats_text = f"Alerts: {self.stats['total_alerts']}"
+        text_size = cv2.getTextSize(stats_text, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)[0]
+        
+        # Background
+        cv2.rectangle(frame, (w - text_size[0] - 25, 10), (w - 10, 45), (0, 0, 0), -1)
+        cv2.rectangle(frame, (w - text_size[0] - 25, 10), (w - 10, 45), (0, 255, 0), 2)
+        
+        # Text
+        cv2.putText(frame, stats_text, (w - text_size[0] - 20, 32), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        
+        return frame
 
     def _detect_and_draw(self, frame):
         """

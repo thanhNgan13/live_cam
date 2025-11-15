@@ -223,6 +223,137 @@
             color: #666;
             line-height: 1.8;
         }
+
+        /* Alert Chat Box Styles */
+        .alert-chat-container {
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .alert-chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-chat-header .badge {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .alert-chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .alert-message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-message.priority-1 {
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-message.priority-2 {
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-message.priority-3 {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-icon {
+            font-size: 1.5em;
+            line-height: 1;
+        }
+
+        .alert-message.priority-1 .alert-icon {
+            color: #dc3545;
+        }
+
+        .alert-message.priority-2 .alert-icon {
+            color: #ffc107;
+        }
+
+        .alert-message.priority-3 .alert-icon {
+            color: #17a2b8;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-time {
+            font-size: 0.75em;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .alert-text {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .alert-metadata {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .no-alerts {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .no-alerts .icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        .clear-alerts-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .clear-alerts-btn:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 
@@ -264,6 +395,23 @@
                 <span id="statusText">Chưa khởi động</span>
             </div>
 
+            <!-- Alert Chat Box -->
+            <div class="alert-chat-container">
+                <div class="alert-chat-header">
+                    <span>📢 Cảnh Báo Realtime</span>
+                    <div>
+                        <span class="badge" id="alertCount">0 alerts</span>
+                        <button class="clear-alerts-btn" onclick="clearAlerts()">Xóa</button>
+                    </div>
+                </div>
+                <div class="alert-chat-messages" id="alertMessages">
+                    <div class="no-alerts">
+                        <div class="icon">🔔</div>
+                        <p>Chưa có cảnh báo nào</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="info-box">
                 <h3>📋 Hướng dẫn:</h3>
                 <ul>
@@ -278,6 +426,9 @@
 
     <script>
         let isDetecting = false;
+        let alertHistory = [];
+        let alertPollInterval = null;
+        let lastAlertTimestamp = 0;
 
         // Load danh sách tài xế khi trang load
         window.addEventListener('DOMContentLoaded', async () => {
@@ -340,6 +491,9 @@
                     `;
 
                     updateStatus('running', '✅ Detection đang chạy');
+                    
+                    // Start polling for alerts
+                    startAlertPolling();
                 } else {
                     updateStatus('error', `❌ Lỗi: ${result.error}`);
                 }
@@ -375,6 +529,9 @@
                     `;
 
                     updateStatus('idle', '⏹️ Đã dừng detection');
+                    
+                    // Stop polling for alerts
+                    stopAlertPolling();
                 } else {
                     updateStatus('error', `❌ Lỗi: ${result.error}`);
                 }
@@ -395,6 +552,119 @@
 
             statusBar.className = `status-bar ${type}`;
             statusText.textContent = message;
+        }
+
+        // Alert management functions
+        function startAlertPolling() {
+            if (alertPollInterval) {
+                clearInterval(alertPollInterval);
+            }
+            // Poll every 500ms for alerts
+            alertPollInterval = setInterval(fetchAlerts, 500);
+        }
+
+        function stopAlertPolling() {
+            if (alertPollInterval) {
+                clearInterval(alertPollInterval);
+                alertPollInterval = null;
+            }
+        }
+
+        async function fetchAlerts() {
+            try {
+                const response = await fetch('/api/yolo/stats');
+                if (!response.ok) return;
+                
+                const stats = await response.json();
+                if (stats.active_alerts && stats.active_alerts.length > 0) {
+                    stats.active_alerts.forEach(alert => {
+                        const alertId = `${alert.behavior}_${alert.timestamp}`;
+                        if (!alertHistory.find(a => a.id === alertId)) {
+                            addAlertToChat({
+                                id: alertId,
+                                behavior: alert.behavior,
+                                message: alert.message,
+                                priority: alert.priority,
+                                timestamp: alert.timestamp,
+                                duration: alert.duration
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching alerts:', error);
+            }
+        }
+
+        function addAlertToChat(alert) {
+            alertHistory.push(alert);
+            
+            const messagesContainer = document.getElementById('alertMessages');
+            
+            // Remove "no alerts" placeholder if exists
+            const noAlerts = messagesContainer.querySelector('.no-alerts');
+            if (noAlerts) {
+                noAlerts.remove();
+            }
+            
+            // Create alert message element
+            const alertElement = document.createElement('div');
+            alertElement.className = `alert-message priority-${alert.priority}`;
+            
+            const icon = getPriorityIcon(alert.priority);
+            const time = formatTimestamp(alert.timestamp);
+            const metadata = alert.duration ? `Duration: ${alert.duration.toFixed(1)}s` : '';
+            
+            alertElement.innerHTML = `
+                <div class="alert-icon">${icon}</div>
+                <div class="alert-content">
+                    <div class="alert-time">${time}</div>
+                    <div class="alert-text">${alert.message}</div>
+                    ${metadata ? `<div class="alert-metadata">${metadata}</div>` : ''}
+                </div>
+            `;
+            
+            messagesContainer.appendChild(alertElement);
+            
+            // Auto-scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Update alert count
+            updateAlertCount();
+        }
+
+        function getPriorityIcon(priority) {
+            switch(priority) {
+                case 1: return '🚨';
+                case 2: return '⚠️';
+                case 3: return 'ℹ️';
+                default: return '🔔';
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp * 1000);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        function updateAlertCount() {
+            const count = alertHistory.length;
+            document.getElementById('alertCount').textContent = `${count} alerts`;
+        }
+
+        function clearAlerts() {
+            alertHistory = [];
+            const messagesContainer = document.getElementById('alertMessages');
+            messagesContainer.innerHTML = `
+                <div class="no-alerts">
+                    <div class="icon">🔔</div>
+                    <p>Chưa có cảnh báo nào</p>
+                </div>
+            `;
+            updateAlertCount();
         }
     </script>
 </body>

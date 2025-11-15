@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi Camera Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: #2a5298;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-add {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #218838;
+        }
+
+        .btn-stop-all {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-stop-all:hover {
+            background: #c82333;
+        }
+
+        .btn-refresh {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-refresh:hover {
+            background: #138496;
+        }
+
+        .stats-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .cameras-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+
+        .camera-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        .camera-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .camera-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-header h3 {
+            font-size: 1.2em;
+        }
+
+        .camera-header .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .camera-video {
+            width: 100%;
+            background: #000;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-video img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .camera-footer {
+            padding: 15px 20px;
+            background: #f8f9fa;
+        }
+
+        .camera-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+
+        .camera-stat {
+            text-align: center;
+        }
+
+        .camera-stat .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .camera-stat .label {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .camera-alerts {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            padding: 5px;
+            margin-bottom: 5px;
+            border-left: 3px solid;
+            padding-left: 10px;
+            font-size: 0.85em;
+        }
+
+        .alert-item.priority-1 {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .alert-item.priority-2 {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .alert-item.priority-3 {
+            border-color: #17a2b8;
+            background: #d1ecf1;
+        }
+
+        .btn-stop-camera {
+            width: 100%;
+            background: #dc3545;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-stop-camera:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .empty-state .icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+
+        .empty-state h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📹 Multi Camera Monitoring System</h1>
+            <p>Giám sát nhiều camera đồng thời với YOLO Detection</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="driverSelect">Thêm Camera:</label>
+                    <select id="driverSelect">
+                        <option value="">-- Chọn tài xế --</option>
+                    </select>
+                </div>
+                <button class="btn btn-add" onclick="addCamera()">
+                    ➕ Thêm Camera
+                </button>
+                <button class="btn btn-refresh" onclick="refreshView()">
+                    🔄 Refresh
+                </button>
+                <button class="btn btn-stop-all" onclick="stopAllCameras()">
+                    ⏹️ Dừng Tất Cả
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Panel -->
+        <div class="stats-panel" id="statsPanel" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="statTotalCameras">0</h3>
+                    <p>Cameras Hoạt Động</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="statTotalAlerts">0</h3>
+                    <p>Tổng Cảnh Báo</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="statHighPriority">0</h3>
+                    <p>Cảnh Báo Cao</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="statAvgFPS">0</h3>
+                    <p>FPS Trung Bình</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cameras Grid -->
+        <div id="camerasContainer">
+            <div class="empty-state">
+                <div class="icon">📹</div>
+                <h2>Chưa có camera nào đang hoạt động</h2>
+                <p>Chọn tài xế và nhấn "Thêm Camera" để bắt đầu giám sát</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cameras = {};
+        let updateInterval = null;
+
+        // Load danh sách tài xế khi trang load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadDrivers();
+            await refreshView();
+            
+            // Auto refresh mỗi 5 giây
+            updateInterval = setInterval(updateCamerasStats, 5000);
+        });
+
+        async function loadDrivers() {
+            try {
+                const response = await fetch('/api/drivers');
+                const drivers = await response.json();
+
+                const select = document.getElementById('driverSelect');
+                select.innerHTML = '<option value="">-- Chọn tài xế --</option>';
+
+                drivers.forEach(driver => {
+                    const option = document.createElement('option');
+                    option.value = driver.id;
+                    option.textContent = `${driver.name} - ${driver.license}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading drivers:', error);
+                alert('Không thể load danh sách tài xế');
+            }
+        }
+
+        async function addCamera() {
+            const driverId = document.getElementById('driverSelect').value;
+
+            if (!driverId) {
+                alert('Vui lòng chọn tài xế!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cameras/start/${driverId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('✅ Đã thêm camera thành công!');
+                    await refreshView();
+                } else {
+                    alert(`❌ Lỗi: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error adding camera:', error);
+                alert('Không thể thêm camera');
+            }
+        }
+
+        async function stopCamera(cameraId) {
+            if (!confirm('Bạn có chắc muốn dừng camera này?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cameras/stop/${cameraId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    await refreshView();
+                } else {
+                    alert(`❌ Lỗi: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error stopping camera:', error);
+                alert('Không thể dừng camera');
+            }
+        }
+
+        async function stopAllCameras() {
+            if (!confirm('Bạn có chắc muốn dừng TẤT CẢ cameras?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cameras/stop-all', {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('✅ Đã dừng tất cả cameras');
+                    await refreshView();
+                } else {
+                    alert(`❌ Lỗi: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error stopping all cameras:', error);
+                alert('Không thể dừng cameras');
+            }
+        }
+
+        async function refreshView() {
+            try {
+                const response = await fetch('/api/cameras/stats');
+                const stats = await response.json();
+
+                cameras = stats.cameras || {};
+                
+                updateStatsPanel(stats);
+                updateCamerasGrid();
+            } catch (error) {
+                console.error('Error refreshing view:', error);
+            }
+        }
+
+        async function updateCamerasStats() {
+            try {
+                const response = await fetch('/api/cameras/stats');
+                const stats = await response.json();
+
+                cameras = stats.cameras || {};
+                updateStatsPanel(stats);
+                
+                // Chỉ cập nhật stats, không reload video
+                for (const [cameraId, cameraData] of Object.entries(cameras)) {
+                    updateCameraStats(cameraId, cameraData);
+                }
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        function updateStatsPanel(stats) {
+            const statsPanel = document.getElementById('statsPanel');
+            
+            if (stats.total_cameras === 0) {
+                statsPanel.style.display = 'none';
+                return;
+            }
+            
+            statsPanel.style.display = 'block';
+            
+            document.getElementById('statTotalCameras').textContent = stats.active_cameras;
+            
+            let totalAlerts = 0;
+            let highPriorityAlerts = 0;
+            let totalFPS = 0;
+            let cameraCount = 0;
+            
+            for (const cameraData of Object.values(cameras)) {
+                totalAlerts += cameraData.stats.total_alerts || 0;
+                totalFPS += cameraData.stats.fps || 0;
+                cameraCount++;
+                
+                // Đếm high priority alerts
+                for (const alert of cameraData.recent_alerts || []) {
+                    if (alert.priority === 1) {
+                        highPriorityAlerts++;
+                    }
+                }
+            }
+            
+            document.getElementById('statTotalAlerts').textContent = totalAlerts;
+            document.getElementById('statHighPriority').textContent = highPriorityAlerts;
+            document.getElementById('statAvgFPS').textContent = cameraCount > 0 ? 
+                (totalFPS / cameraCount).toFixed(1) : '0.0';
+        }
+
+        function updateCamerasGrid() {
+            const container = document.getElementById('camerasContainer');
+            
+            if (Object.keys(cameras).length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📹</div>
+                        <h2>Chưa có camera nào đang hoạt động</h2>
+                        <p>Chọn tài xế và nhấn "Thêm Camera" để bắt đầu giám sát</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '<div class="cameras-grid" id="camerasGrid"></div>';
+            const grid = document.getElementById('camerasGrid');
+            
+            for (const [cameraId, cameraData] of Object.entries(cameras)) {
+                const card = createCameraCard(cameraId, cameraData);
+                grid.appendChild(card);
+            }
+        }
+
+        function createCameraCard(cameraId, cameraData) {
+            const card = document.createElement('div');
+            card.className = 'camera-card';
+            card.id = `camera-${cameraId}`;
+            
+            const alerts = cameraData.recent_alerts || [];
+            const alertsHTML = alerts.length > 0 ? 
+                alerts.map(alert => `
+                    <div class="alert-item priority-${alert.priority}">
+                        ${alert.message}
+                    </div>
+                `).join('') : 
+                '<p style="color: #999; text-align: center;">Không có cảnh báo</p>';
+            
+            card.innerHTML = `
+                <div class="camera-header">
+                    <h3>${cameraData.driver_name}</h3>
+                    <div class="status">
+                        <span class="status-indicator"></span>
+                        <span>Đang hoạt động</span>
+                    </div>
+                </div>
+                <div class="camera-video">
+                    <img src="/api/cameras/stream/${cameraId}?t=${Date.now()}" 
+                         alt="${cameraData.driver_name}"
+                         onerror="this.src='/static/images/no-signal.jpg'">
+                </div>
+                <div class="camera-footer">
+                    <div class="camera-stats">
+                        <div class="camera-stat">
+                            <div class="value">${(cameraData.stats.fps || 0).toFixed(1)}</div>
+                            <div class="label">FPS</div>
+                        </div>
+                        <div class="camera-stat">
+                            <div class="value">${cameraData.stats.processed_frames || 0}</div>
+                            <div class="label">Frames</div>
+                        </div>
+                        <div class="camera-stat">
+                            <div class="value">${cameraData.stats.total_alerts || 0}</div>
+                            <div class="label">Alerts</div>
+                        </div>
+                    </div>
+                    <div class="camera-alerts">
+                        <strong>Cảnh báo gần đây:</strong>
+                        ${alertsHTML}
+                    </div>
+                    <button class="btn btn-stop-camera" onclick="stopCamera('${cameraId}')">
+                        ⏹️ Dừng Camera
+                    </button>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function updateCameraStats(cameraId, cameraData) {
+            const card = document.getElementById(`camera-${cameraId}`);
+            if (!card) return;
+            
+            // Cập nhật stats
+            const stats = card.querySelectorAll('.camera-stat .value');
+            if (stats.length >= 3) {
+                stats[0].textContent = (cameraData.stats.fps || 0).toFixed(1);
+                stats[1].textContent = cameraData.stats.processed_frames || 0;
+                stats[2].textContent = cameraData.stats.total_alerts || 0;
+            }
+            
+            // Cập nhật alerts
+            const alertsContainer = card.querySelector('.camera-alerts');
+            const alerts = cameraData.recent_alerts || [];
+            
+            const alertsHTML = alerts.length > 0 ? 
+                '<strong>Cảnh báo gần đây:</strong>' +
+                alerts.map(alert => `
+                    <div class="alert-item priority-${alert.priority}">
+                        ${alert.message}
+                    </div>
+                `).join('') : 
+                '<strong>Cảnh báo gần đây:</strong><p style="color: #999; text-align: center;">Không có cảnh báo</p>';
+            
+            alertsContainer.innerHTML = alertsHTML;
+        }
+
+        // Cleanup khi rời trang
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+        });
+    </script>
+</body>
+
+</html>
