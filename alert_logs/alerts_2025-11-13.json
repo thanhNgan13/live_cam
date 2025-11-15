@@ -1,0 +1,123 @@
+[
+  {
+    "alert_id": "sleepy_eye_1763007246",
+    "timestamp": 1763007246.5773745,
+    "datetime": "2025-11-13T11:14:06.577374",
+    "behavior": "sleepy_eye",
+    "message": "NGUY HIEM: Buon ngu!",
+    "priority": 1,
+    "duration": 2.82,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\sleepy_eye_11-14-06.mp4"
+  },
+  {
+    "alert_id": "look_away_1763007349",
+    "timestamp": 1763007349.4617512,
+    "datetime": "2025-11-13T11:15:49.461751",
+    "behavior": "look_away",
+    "message": "CANH BAO: Mat tap trung!",
+    "priority": 2,
+    "duration": 1.51,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\look_away_11-15-49.mp4"
+  },
+  {
+    "alert_id": "phone_1763007363",
+    "timestamp": 1763007363.8377225,
+    "datetime": "2025-11-13T11:16:03.837723",
+    "behavior": "phone",
+    "message": "CANH BAO: Dang dung dien thoai!",
+    "priority": 1,
+    "duration": 1.5,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\phone_11-16-03.mp4"
+  },
+  {
+    "alert_id": "phone_1763007395",
+    "timestamp": 1763007395.6059113,
+    "datetime": "2025-11-13T11:16:35.605911",
+    "behavior": "phone",
+    "message": "CANH BAO: Dang dung dien thoai!",
+    "priority": 1,
+    "duration": 1.55,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\phone_11-16-35.mp4"
+  },
+  {
+    "alert_id": "look_away_1763007454",
+    "timestamp": 1763007454.161101,
+    "datetime": "2025-11-13T11:17:34.161101",
+    "behavior": "look_away",
+    "message": "CANH BAO: Mat tap trung!",
+    "priority": 2,
+    "duration": 1.55,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\look_away_11-17-34.mp4"
+  },
+  {
+    "alert_id": "yawn_1763007852",
+    "timestamp": 1763007852.3310668,
+    "datetime": "2025-11-13T11:24:12.331067",
+    "behavior": "yawn",
+    "message": "CANH BAO: Ngap qua nhieu!",
+    "priority": 2,
+    "duration": null,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\yawn_11-24-12.mp4"
+  },
+  {
+    "alert_id": "yawn_1763007869",
+    "timestamp": 1763007869.140483,
+    "datetime": "2025-11-13T11:24:29.140483",
+    "behavior": "yawn",
+    "message": "CANH BAO: Ngap qua nhieu!",
+    "priority": 2,
+    "duration": null,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\yawn_11-24-29.mp4"
+  },
+  {
+    "alert_id": "yawn_1763008549",
+    "timestamp": 1763008549.5975597,
+    "datetime": "2025-11-13T11:35:49.597560",
+    "behavior": "yawn",
+    "message": "CANH BAO: Ngap qua nhieu!",
+    "priority": 2,
+    "duration": null,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\yawn_11-35-49.mp4"
+  },
+  {
+    "alert_id": "sleepy_eye_1763008556",
+    "timestamp": 1763008556.57141,
+    "datetime": "2025-11-13T11:35:56.571410",
+    "behavior": "sleepy_eye",
+    "message": "NGUY HIEM: Buon ngu!",
+    "priority": 1,
+    "duration": 2.66,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\sleepy_eye_11-35-56.mp4"
+  },
+  {
+    "alert_id": "sleepy_eye_1763008570",
+    "timestamp": 1763008570.431219,
+    "datetime": "2025-11-13T11:36:10.431219",
+    "behavior": "sleepy_eye",
+    "message": "NGUY HIEM: Buon ngu!",
+    "priority": 1,
+    "duration": 2.66,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\sleepy_eye_11-36-10.mp4"
+  },
+  {
+    "alert_id": "sleepy_eye_1763008580",
+    "timestamp": 1763008580.5709975,
+    "datetime": "2025-11-13T11:36:20.570997",
+    "behavior": "sleepy_eye",
+    "message": "NGUY HIEM: Buon ngu!",
+    "priority": 1,
+    "duration": 3.44,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-13\\sleepy_eye_11-36-20.mp4"
+  }
+]

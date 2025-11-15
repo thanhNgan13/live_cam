@@ -1,0 +1,24 @@
+[
+  {
+    "alert_id": "sleepy_eye_1763225462",
+    "timestamp": 1763225462.1961174,
+    "datetime": "2025-11-15T23:51:02.196117",
+    "behavior": "sleepy_eye",
+    "message": "NGUY HIEM: Buon ngu!",
+    "priority": 1,
+    "duration": 2.51,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-15\\sleepy_eye_23-51-02.mp4"
+  },
+  {
+    "alert_id": "look_away_1763225468",
+    "timestamp": 1763225468.0135162,
+    "datetime": "2025-11-15T23:51:08.013516",
+    "behavior": "look_away",
+    "message": "CANH BAO: Mat tap trung!",
+    "priority": 2,
+    "duration": 1.51,
+    "driver_id": "4",
+    "evidence_file": "alert_evidence\\2025-11-15\\look_away_23-51-08.mp4"
+  }
+]
